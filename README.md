@@ -1,11 +1,11 @@
-# pi-search
+# pi-search-multi
 
 Unified web search extension for [pi](https://pi.dev) with **9 backend providers** (all working). One `web_search` tool, auto-fallback between backends.
 
 ## Installation
 
 ```bash
-pi install npm:pi-search
+pi install npm:pi-search-multi
 ```
 
 ## Usage
