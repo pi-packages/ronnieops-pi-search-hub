@@ -176,7 +176,8 @@ print(json.dumps({"results": results}))
 		const tmpFile = join(tmpdir(), `pi-ddg-${Date.now()}-${Math.random().toString(36).slice(2)}.py`);
 		writeFileSync(tmpFile, pyScript, "utf-8");
 		try {
-			const output = execSync(`python3 "${tmpFile}"`, {
+			const pythonCmd = process.platform === "win32" ? "python" : "python3";
+			const output = execSync(`"${pythonCmd}" "${tmpFile}"`, {
 				encoding: "utf-8",
 				timeout: HTTP_TIMEOUT_MS,
 				maxBuffer: 1024 * 1024,

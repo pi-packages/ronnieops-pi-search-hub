@@ -8,6 +8,10 @@ Unified web search extension for [pi](https://pi.dev) with **9 backend providers
 pi install npm:pi-search-multi
 ```
 
+> **Note for DuckDuckGo backend:** Requires the `ddgs` Python package. Install with:
+> - Linux/macOS: `pip3 install ddgs`
+> - Windows: `pip install ddgs`
+
 ## Usage
 
 After installing, just ask naturally:
@@ -26,7 +30,7 @@ Or call the tool directly via `web_search` — the agent picks the best configur
 
 | # | Backend               | Free Tier                | API Key? | How to get key                                                    |
 | - | --------------------- | ------------------------ | :------: | ----------------------------------------------------------------- |
-| 1 | **DuckDuckGo**        | Unlimited (rate-limited) |  **No**  | `pip install ddgs`                                                    |
+| 1 | **DuckDuckGo**        | Unlimited (rate-limited) |  **No**  | `pip install ddgs` (Linux/macOS: `pip3`)|
 | 2 | **Marginalia Search** | Unlimited (rate-limited) | **No**†  | [marginalia.nu](https://www.marginalia.nu/marginalia-search/api/) |
 | 3 | **Tavily**            | 1,000 calls/month        |   Yes    | [tavily.com](https://tavily.com)                                  |
 | 4 | **Serper** (Google)   | 2,500 queries/month      |   Yes    | [serper.dev](https://serper.dev)                                  |
