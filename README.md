@@ -26,7 +26,7 @@ Or call the tool directly via `web_search` — the agent picks the best configur
 
 | # | Backend               | Free Tier                | API Key? | How to get key                                                    |
 | - | --------------------- | ------------------------ | :------: | ----------------------------------------------------------------- |
-| 1 | **DuckDuckGo**        | Unlimited (rate-limited) |  **No**  | Nothing needed                                                    |
+| 1 | **DuckDuckGo**        | Unlimited (rate-limited) |  **No**  | `pip install ddgs`                                                    |
 | 2 | **Marginalia Search** | Unlimited (rate-limited) | **No**†  | [marginalia.nu](https://www.marginalia.nu/marginalia-search/api/) |
 | 3 | **Tavily**            | 1,000 calls/month        |   Yes    | [tavily.com](https://tavily.com)                                  |
 | 4 | **Serper** (Google)   | 2,500 queries/month      |   Yes    | [serper.dev](https://serper.dev)                                  |
