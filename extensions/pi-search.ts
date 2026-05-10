@@ -5,14 +5,16 @@
  *   duckduckgo    — ✅ Truly free, no API key needed. 1158ms avg, 3.5/10 quality
  *   marginalia    — ✅ Anti-SEO search, "public" key (no reg). 354ms avg, 3.0/10
  *   serper        — ✅ Google via serper.dev, 2500 free/mo. 667ms, 3.5/10
- *   brave         — ✅ Brave Search, 2000 free/mo. 460ms (rate-limited ~1 req/s)
+ *   brave         — ✅ Brave Search, metered billing ~$5/mo credit. 460ms (rate-limited ~1 req/s)
  *   tavily        — ✅ Tavily AI search, 1000 free/mo. 356ms, 3.7/10 BEST QUALITY
  *   exa           — ✅ Exa AI search, 10 QPS free tier. 137ms, 3.2/10 FASTEST
  *   firecrawl     — ✅ Firecrawl, 500 free credits. 644ms, 3.5/10
  *   langsearch    — ✅ LangSearch, genuinely free. Endpoint: /v1/web-search (Bearer). 10 results/query. 1816ms, 3.2/10
  *   websearchapi  — ✅ WebSearchAPI.ai, 2000 free credits. Endpoint: /ai-search, Bearer token. 1323ms, 3.5/10
+ *   perplexity    — ✅ Perplexity Sonar API, unlimited free Sonar queries. Chat-completion format, extracts citations as results
+ *   searxng       — ✅ Self-hosted metasearch, aggregates 70+ providers. Needs instance URL, no API key required
  *
- * Benchmark (2026-05-04): All 9 backends confirmed working. See benchmark/ for details.
+ * Benchmark (2026-05-04): Backends 1-9 confirmed working. See benchmark/ for details.
  *
  * Config file (project takes precedence):
  *   ~/.pi/agent/extensions/search.json (global)
@@ -32,15 +34,16 @@
  *       "exa": { "enabled": true, "apiKey": "..." },
  *       "firecrawl": { "enabled": true, "apiKey": "..." },
  *       "langsearch": { "enabled": true, "apiKey": "..." },
- *       "websearchapi": { "enabled": true, "apiKey": "..." }
+ *       "websearchapi": { "enabled": true, "apiKey": "..." },
+ *       "perplexity": { "enabled": true, "apiKey": "..." },
+ *       "searxng": { "enabled": true, "instanceUrl": "http://localhost:8888" }
  *     }
  *   }
  */
 
-import { execSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { StringEnum } from "@mariozechner/pi-ai";
 import { Type } from "typebox";
@@ -52,6 +55,8 @@ import { Type } from "typebox";
 interface BackendConfig {
 	enabled?: boolean;
 	apiKey?: string;
+	/** SearXNG-specific: base URL of the self-hosted instance (e.g. http://localhost:8888) */
+	instanceUrl?: string;
 }
 
 interface SearchConfig {
@@ -67,6 +72,8 @@ interface SearchConfig {
 		langsearch?: BackendConfig;
 		firecrawl?: BackendConfig;
 		websearchapi?: BackendConfig;
+		perplexity?: BackendConfig;
+		searxng?: BackendConfig;
 	};
 }
 
@@ -92,7 +99,16 @@ function loadConfig(cwd: string): SearchConfig {
 			const project = JSON.parse(readFileSync(projectPath, "utf-8"));
 			config = { ...config, ...project };
 			if (project.backends) {
-				config.backends = { ...config.backends, ...project.backends };
+				// Deep merge: merge per-backend so global backends not re-listed in project config are preserved
+				const merged = { ...config.backends };
+				for (const [key, val] of Object.entries(project.backends)) {
+					if (val && merged[key]) {
+						merged[key] = { ...merged[key], ...val };
+					} else {
+						merged[key] = val;
+					}
+				}
+				config.backends = merged;
 			}
 		} catch {
 			// ignore
@@ -160,11 +176,9 @@ async function searchDuckDuckGo(
 	numResults: number,
 	signal?: AbortSignal,
 ): Promise<{ results: DuckDuckGoResult[] }> {
-	// Note: execSync is blocking so we cannot abort mid-execution.
-	// Check pre-abort and rely on the HTTP_TIMEOUT_MS timeout for cancellation.
 	if (signal?.aborted) throw new Error("DuckDuckGo search aborted");
-	try {
-		const pyScript = `
+
+	const pyScript = `
 import json, sys
 from ddgs import DDGS
 results = []
@@ -173,22 +187,57 @@ with DDGS() as ddgs:
         results.append({"title": r.get("title",""), "url": r.get("href",""), "snippet": r.get("body","")})
 print(json.dumps({"results": results}))
 `;
-		const tmpFile = join(tmpdir(), `pi-ddg-${Date.now()}-${Math.random().toString(36).slice(2)}.py`);
-		writeFileSync(tmpFile, pyScript, "utf-8");
-		try {
-			const pythonCmd = process.platform === "win32" ? "python" : "python3";
-			const output = execSync(`"${pythonCmd}" "${tmpFile}"`, {
-				encoding: "utf-8",
-				timeout: HTTP_TIMEOUT_MS,
-				maxBuffer: 1024 * 1024,
-			});
-			return JSON.parse(output.trim());
-		} finally {
-			try { unlinkSync(tmpFile); } catch {}
+
+	return new Promise((resolve, reject) => {
+		const pythonCmd = process.platform === "win32" ? "python" : "python3";
+		const proc = spawn(pythonCmd, ["-c", pyScript], {
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+
+		let stdout = "";
+		let stderr = "";
+
+		proc.stdout.on("data", (data: Buffer) => { stdout += data.toString(); });
+		proc.stderr.on("data", (data: Buffer) => { stderr += data.toString(); });
+
+		// Timeout timer
+		const timeout = setTimeout(() => {
+			proc.kill();
+			reject(new Error("DuckDuckGo search timed out"));
+		}, HTTP_TIMEOUT_MS);
+
+		// Abort signal handler
+		const onAbort = () => {
+			clearTimeout(timeout);
+			proc.kill();
+			reject(new Error("DuckDuckGo search aborted"));
+		};
+		if (signal) {
+			if (signal.aborted) { clearTimeout(timeout); reject(new Error("DuckDuckGo search aborted")); return; }
+			signal.addEventListener("abort", onAbort, { once: true });
 		}
-	} catch (e) {
-		throw new Error(`DuckDuckGo search failed: ${e instanceof Error ? e.message : String(e)}`);
-	}
+
+		proc.on("close", (code) => {
+			clearTimeout(timeout);
+			if (signal) signal.removeEventListener("abort", onAbort);
+			if (code === 0) {
+				try {
+					resolve(JSON.parse(stdout.trim()));
+				} catch {
+					reject(new Error(`DuckDuckGo search: invalid JSON output: ${stdout.slice(0, 200)}`));
+				}
+			} else {
+				const msg = stderr.trim().slice(0, 300);
+				reject(new Error(`DuckDuckGo search failed (exit ${code}): ${msg || "unknown error"}`));
+			}
+		});
+
+		proc.on("error", (err) => {
+			clearTimeout(timeout);
+			if (signal) signal.removeEventListener("abort", onAbort);
+			reject(new Error(`DuckDuckGo search failed: ${err.message}`));
+		});
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -352,7 +401,7 @@ async function searchExa(
 }
 
 // ---------------------------------------------------------------------------
-// Backend: Brave Search (2000 free queries/month, needs API key)
+// Backend: Brave Search (metered billing ~$5/mo credit, needs API key)
 // ---------------------------------------------------------------------------
 
 async function searchBrave(
@@ -507,6 +556,131 @@ async function searchWebSearchAPI(
 	};
 }
 // ---------------------------------------------------------------------------
+// Backend: Perplexity Sonar (free tier, unlimited queries, needs API key)
+// Endpoint: POST /chat/completions, auth: Authorization: Bearer
+// Uses sonar-pro model, extracts citations from response as search results
+// ---------------------------------------------------------------------------
+
+async function searchPerplexity(
+	query: string,
+	numResults: number,
+	apiKey: string,
+	signal?: AbortSignal,
+): Promise<{ results: Array<{ title: string; url: string; snippet?: string }> }> {
+	const body = {
+		model: "sonar",
+		messages: [
+			{
+				role: "user",
+				content: query,
+			},
+		],
+		search_context_size: "high",
+	};
+
+	const response = await fetch("https://api.perplexity.ai/chat/completions", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"Authorization": `Bearer ${apiKey}`,
+		},
+		body: JSON.stringify(body),
+		signal: timeoutSignal(signal),
+	});
+
+	if (!response.ok) {
+		const text = await response.text().catch(() => "");
+		throw new Error(`Perplexity ${sanitizeError(response.status, text)}`);
+	}
+
+	const data = (await response.json()) as Record<string, unknown>;
+
+	// Extract citations from the response
+	const citations = (data.citations as string[]) || [];
+	const message = (data.choices as Array<Record<string, unknown>>)?.[0]?.message as Record<string, unknown> | undefined;
+	const answerText = (message?.content as string) || "";
+
+	// Build results from citations; use the answer text as the first result's snippet
+	const results: Array<{ title: string; url: string; snippet: string }> = [];
+
+	if (answerText) {
+		results.push({
+			title: `Answer: ${query}`,
+			url: citations[0] || "",
+			snippet: answerText.slice(0, 500),
+		});
+	}
+
+	for (const url of citations) {
+		// Extract a readable title from the URL
+		try {
+			const u = new URL(url);
+			const title = u.hostname.replace(/^www\./, "") + (u.pathname !== "/" ? u.pathname.slice(0, 60) : "");
+			results.push({ title: title || url, url, snippet: "" });
+		} catch {
+			results.push({ title: url, url, snippet: "" });
+		}
+	}
+
+	return { results: results.slice(0, numResults) };
+}
+
+// ---------------------------------------------------------------------------
+// Backend: SearXNG (self-hosted metasearch, aggregates 70+ providers)
+// Endpoint: GET /search?q=<query>&format=json, optional auth via API key header
+// Needs instance URL configured in search.json
+// ---------------------------------------------------------------------------
+
+async function searchSearXNG(
+	query: string,
+	numResults: number,
+	apiKey: string | undefined,
+	instanceUrl: string | undefined,
+	signal?: AbortSignal,
+): Promise<{ results: Array<{ title: string; url: string; snippet?: string }> }> {
+	if (!instanceUrl) {
+		throw new Error("SearXNG instance URL not configured. Set searxng.instanceUrl in search.json (e.g. http://localhost:8888)");
+	}
+
+	const baseUrl = instanceUrl.replace(/\/+$/, "");
+	const params = new URLSearchParams({
+		q: query,
+		format: "json",
+		count: String(Math.min(numResults, 50)),
+	});
+
+	const headers: Record<string, string> = {
+		"Accept": "application/json",
+	};
+	if (apiKey) {
+		headers["Authorization"] = `Bearer ${apiKey}`;
+	}
+
+	const response = await fetch(`${baseUrl}/search?${params}`, {
+		method: "GET",
+		headers,
+		signal: timeoutSignal(signal),
+	});
+
+	if (!response.ok) {
+		const text = await response.text().catch(() => "");
+		throw new Error(`SearXNG ${sanitizeError(response.status, text)}`);
+	}
+
+	const data = (await response.json()) as Record<string, unknown>;
+	const rawResults = data.results as Array<Record<string, unknown>> | undefined;
+	const results = Array.isArray(rawResults) ? rawResults : [];
+
+	return {
+		results: results.slice(0, numResults).map((r) => ({
+			title: (r.title as string) || "",
+			url: (r.url as string) || "",
+			snippet: ((r.content as string) || (r.snippet as string) || "").slice(0, 500),
+		})),
+	};
+}
+
+// ---------------------------------------------------------------------------
 // Result formatting
 // ---------------------------------------------------------------------------
 
@@ -636,6 +810,18 @@ export default function (pi: ExtensionAPI) {
 				const ws = await searchWebSearchAPI(query, numResults, bc.apiKey, signal);
 				return ws.results;
 			}
+			case "perplexity": {
+				const bc = config.backends?.perplexity;
+				if (!bc?.apiKey) throw new Error(`Perplexity backend not configured. ${MISSING_KEY_HELP}`);
+				const pp = await searchPerplexity(query, numResults, bc.apiKey, signal);
+				return pp.results;
+			}
+			case "searxng": {
+				const bc = config.backends?.searxng;
+				if (!bc?.instanceUrl) throw new Error("SearXNG instance URL not configured. Set searxng.instanceUrl in search.json");
+				const sx = await searchSearXNG(query, numResults, bc.apiKey, bc.instanceUrl, signal);
+				return sx.results;
+			}
 			default:
 				throw new Error(`Unknown backend: ${backend}`);
 		}
@@ -655,7 +841,7 @@ export default function (pi: ExtensionAPI) {
 			"Search the web using one of several backend search engines. " +
 			"Supports DuckDuckGo (free, no key), " +
 			"Marginalia Search (free, shared public key), Serper, Tavily, Exa, Brave, " +
-			"LangSearch, Firecrawl, and WebSearchAPI (most need API keys). " +
+			"LangSearch, Firecrawl, WebSearchAPI, Perplexity Sonar, and SearXNG (most need API keys). " +
 			"The best available backend is used automatically. " +
 			"Use for fact-finding, research, documentation lookups, and current events.",
 		promptSnippet: "Search the web (supports multiple search backends)",
@@ -676,7 +862,7 @@ export default function (pi: ExtensionAPI) {
 			),
 			backend: Type.Optional(
 				StringEnum(["duckduckgo", "marginalia", "serper", "tavily", "exa",
-					"brave", "langsearch", "firecrawl", "websearchapi", "auto"] as const, {
+					"brave", "langsearch", "firecrawl", "websearchapi", "perplexity", "searxng", "auto"] as const, {
 					description:
 						"Backend to use. 'auto' picks the best configured backend (default)",
 				}),
@@ -741,20 +927,24 @@ export default function (pi: ExtensionAPI) {
 				"Serper (Google — 2500 free queries/month)",
 				"Tavily (AI agent search — 1000 free calls/month)",
 				"Exa (AI search — 10 QPS free tier)",
-				"Brave Search (2000 free queries/month)",
+				"Brave Search (metered billing ~$5/mo credit)",
 				"LangSearch (genuinely free, no CC)",
 				"Firecrawl (500 free credits)",
 				"WebSearchAPI.ai (2000 free credits)",
+				"Perplexity Sonar (unlimited free queries)",
+				"SearXNG (self-hosted, needs instance URL)",
 			];
 
 			const backendKey: Record<string, string> = {
 				"Serper (Google — 2500 free queries/month)": "serper",
 				"Tavily (AI agent search — 1000 free calls/month)": "tavily",
 				"Exa (AI search — 10 QPS free tier)": "exa",
-				"Brave Search (2000 free queries/month)": "brave",
+				"Brave Search (metered billing ~$5/mo credit)": "brave",
 				"LangSearch (genuinely free, no CC)": "langsearch",
 				"Firecrawl (500 free credits)": "firecrawl",
 				"WebSearchAPI.ai (2000 free credits)": "websearchapi",
+				"Perplexity Sonar (unlimited free queries)": "perplexity",
+				"SearXNG (self-hosted, needs instance URL)": "searxng",
 			};
 
 			const option = await ctx.ui.select("Which backend do you want to configure?", [
@@ -795,11 +985,35 @@ export default function (pi: ExtensionAPI) {
 				}
 			}
 
+			// SearXNG setup needs both instance URL and optional API key
+			let backendConfig: BackendConfig = { enabled: true };
+			if (backend === "searxng") {
+				const url = await ctx.ui.input("Enter your SearXNG instance URL (e.g. http://localhost:8888):", {
+					placeholder: "http://localhost:8888",
+					validate: (v: string) =>
+						v.trim().length > 0 ? undefined : "URL cannot be empty",
+				});
+				if (!url) {
+					ctx.ui.notify("Setup cancelled.", "info");
+					return;
+				}
+				backendConfig.instanceUrl = url.trim();
+				// Optionally ask for API key (some instances require auth)
+				const optionalKey = await ctx.ui.input("Optional API key (leave empty if none):", {
+					placeholder: "sk-... (optional)",
+				});
+				if (optionalKey && optionalKey.trim()) {
+					backendConfig.apiKey = optionalKey.trim();
+				}
+			} else {
+				backendConfig.apiKey = key?.trim() || "";
+			}
+
 			const updated: SearchConfig = {
 				...existing,
 				backends: {
 					...existing.backends,
-					[backend]: { enabled: true, apiKey: key.trim() },
+					[backend]: backendConfig,
 				},
 			};
 
@@ -827,6 +1041,8 @@ export default function (pi: ExtensionAPI) {
 				langsearch: "LangSearch",
 				firecrawl: "Firecrawl",
 				websearchapi: "WebSearchAPI",
+				perplexity: "Perplexity Sonar",
+				searxng: "SearXNG",
 			};
 
 			// Collect table rows first to compute aligned column widths
@@ -840,6 +1056,9 @@ export default function (pi: ExtensionAPI) {
 					rows.push([label, "✓ enabled, key: — (free)"]);
 				} else if (name === "marginalia" && bc?.enabled) {
 					rows.push([label, "✓ enabled, key: optional (public)"]);
+				} else if (name === "searxng" && bc?.enabled) {
+					const urlInfo = bc.instanceUrl ? `url: ${bc.instanceUrl}` : "no URL set";
+					rows.push([label, `✓ enabled, ${urlInfo}, key: ${keyConfigured}`]);
 				} else if (bc?.enabled) {
 					rows.push([label, `✓ enabled, key: ${keyConfigured}`]);
 				} else {
