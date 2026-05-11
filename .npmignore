@@ -1,0 +1,30 @@
+# Session artifacts
+handoffs/
+scout-pr3-findings.md
+researcher-pr3-findings.md
+context.md
+research.md
+
+# Git
+.git/
+.gitignore
+
+# All markdown except the intended docs
+*.md
+!README.md
+!benchmark/benchmark.mjs
+!benchmark/benchmark-report.md
+!github-meta.md
+!reddit-post.md
+
+# All TypeScript except the search extension
+extensions/*.ts
+!extensions/pi-search.ts
+
+# All non-search files
+.pi/
+benchmark/benchmark-current-report.md
+
+# Misc
+*.log
+.DS_Store
