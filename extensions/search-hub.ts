@@ -837,6 +837,7 @@ async function searchJina(
 	const response = await fetch(url, {
 		signal: timeoutSignal(signal),
 		headers,
+	});
 
 	if (!response.ok) {
 		const text = await response.text().catch(() => "");
