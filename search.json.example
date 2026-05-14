@@ -2,15 +2,16 @@
   "defaultBackend": "auto",
   "backends": {
     "duckduckgo": { "enabled": true },
+    "jina": { "enabled": true },
     "marginalia": { "enabled": true },
-    "serper": { "enabled": true, "apiKey": "YOUR_SERPER_KEY" },
-    "brave": { "enabled": true, "apiKey": "YOUR_BRAVE_KEY" },
-    "tavily": { "enabled": true, "apiKey": "YOUR_TAVILY_KEY" },
-    "exa": { "enabled": true, "apiKey": "YOUR_EXA_KEY" },
-    "firecrawl": { "enabled": true, "apiKey": "YOUR_FIRECRAWL_KEY" },
-    "langsearch": { "enabled": true, "apiKey": "YOUR_LANGSEARCH_KEY" },
-    "websearchapi": { "enabled": true, "apiKey": "YOUR_WEBSEARCHAPI_KEY" },
-    "perplexity": { "enabled": true, "apiKey": "YOUR_PERPLEXITY_KEY" },
+    "serper": { "enabled": true, "apiKey": "SERPER_API_KEY" },
+    "brave": { "enabled": true, "apiKey": "BRAVE_API_KEY" },
+    "tavily": { "enabled": true, "apiKey": "TAVILY_API_KEY" },
+    "exa": { "enabled": true, "apiKey": "EXA_API_KEY" },
+    "firecrawl": { "enabled": true, "apiKey": "FIRECRAWL_API_KEY" },
+    "langsearch": { "enabled": true, "apiKey": "LANGSEARCH_API_KEY" },
+    "websearchapi": { "enabled": true, "apiKey": "WEBSEARCHAPI_API_KEY" },
+    "perplexity": { "enabled": true, "apiKey": "PERPLEXITY_API_KEY" },
     "searxng": { "enabled": true, "instanceUrl": "http://localhost:8888" }
   }
 }

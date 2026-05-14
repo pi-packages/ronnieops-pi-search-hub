@@ -29,6 +29,7 @@ const NUM_RESULTS = 5;
 
 const BACKENDS = [
   { name: "duckduckgo",   label: "DuckDuckGo",          needsPy: true },
+  { name: "jina",         label: "Jina AI",              needsPy: false },
   { name: "marginalia",   label: "Marginalia Search",    needsPy: false },
   { name: "serper",       label: "Serper",               needsPy: false },
   { name: "tavily",       label: "Tavily",               needsPy: false },
@@ -270,6 +271,25 @@ async function testWebSearchAPI(query, numResults, apiKey) {
   return { results, elapsed };
 }
 
+// --- Jina AI ---
+async function testJina(query, numResults, apiKey) {
+  const t0 = Date.now();
+  const headers = { Accept: "application/json" };
+  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+  const res = await fetch(`https://s.jina.ai/?q=${encodeURIComponent(query)}&format=json`, { headers });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Jina AI HTTP ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const elapsed = (Date.now() - t0) / 1000;
+  const data = await res.json();
+  const rawData = data.data || [];
+  const results = rawData.slice(0, numResults).map(r => ({
+    title: r.title || "", url: r.url || "", snippet: (r.content || "").slice(0, 500),
+  }));
+  return { results, elapsed };
+}
+
 // ---------------------------------------------------------------------------
 // Quality scoring
 // ---------------------------------------------------------------------------
@@ -313,6 +333,9 @@ async function main() {
         let result;
         if (name === "duckduckgo") {
           result = await testDuckDuckGo(query, NUM_RESULTS);
+        } else if (name === "jina") {
+          const apiKey = loadApiKey(name);
+          result = await testJina(query, NUM_RESULTS, apiKey);
         } else if (name === "marginalia") {
           result = await testMarginalia(query, NUM_RESULTS);
         } else if (name === "perplexity") {
