@@ -1,17 +1,20 @@
 {
-  "name": "pi-search-multi",
+  "name": "pi-search-hub",
   "version": "1.4.1",
-  "description": "Unified web search + content extraction extension for pi with 12 backend providers — DuckDuckGo, Jina AI, Marginalia, Serper, Brave, Tavily, Exa, Firecrawl, LangSearch, WebSearchAPI.ai, Perplexity Sonar, and SearXNG. RRF combine mode, env/shell credential resolution.",
+  "description": "Unified web search + content extraction extension for pi with 12 backends (DuckDuckGo, Jina AI, Tavily, Brave, Exa, Serper, Firecrawl, Marginalia, LangSearch, WebSearchAPI, Perplexity Sonar, SearXNG). Auto-fallback, RRF combine mode, web_read tool, secure credential resolution.",
   "keywords": [
     "pi-package",
     "pi",
     "pi-coding-agent",
     "search",
     "web-search",
+    "web-read",
+    "content-extraction",
+    "search-hub",
     "duckduckgo",
-    "marginalia",
-    "serper",
+    "jina",
     "tavily",
+    "serper",
     "exa",
     "brave",
     "firecrawl",
@@ -19,7 +22,7 @@
     "websearchapi",
     "perplexity",
     "searxng",
-    "benchmark",
+    "rrf",
     "ai-agent"
   ],
   "author": "",
@@ -31,7 +34,7 @@
   },
   "pi": {
     "extensions": [
-      "./extensions/pi-search.ts"
+      "./extensions/search-hub.ts"
     ],
     "image": "https://pi.dev/assets/packages/pi-search-multi.png"
   },

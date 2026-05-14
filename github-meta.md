@@ -1,6 +1,6 @@
 ## GitHub Description
 
-Unified web search + content extraction extension for pi — 12 backends (DuckDuckGo, Jina AI, Tavily, Brave, Exa, Serper, Firecrawl, Marginalia, LangSearch, WebSearchAPI, Perplexity Sonar, SearXNG) with RRF combine mode, auto-fallback, web_read tool, and env/shell credential resolution.
+Unified web search + content extraction extension for pi — 12 backends (DuckDuckGo, Jina AI, Tavily, Brave, Exa, Serper, Firecrawl, Marginalia, LangSearch, WebSearchAPI, Perplexity Sonar, SearXNG) with auto-fallback, RRF combine mode, web_read tool, and env/shell credential resolution.
 
 ## GitHub Topics
 
@@ -8,14 +8,16 @@ pi
 pi-coding-agent
 pi-package
 pi-extension
+search-hub
 web-search
-search-engine
 web-read
 content-extraction
+rrf
+reciprocal-rank-fusion
 duckduckgo
-jina-ai
+jina
 tavily
-brave-search
+brave
 exa
 serper
 firecrawl
@@ -24,8 +26,6 @@ langsearch
 websearchapi
 perplexity
 searxng
-rrf
-reciprocal-rank-fusion
 ai-agent
 coding-agent
 cli-tool

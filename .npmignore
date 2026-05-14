@@ -21,7 +21,7 @@ research.md
 
 # All TypeScript except the search extension
 extensions/*.ts
-!extensions/pi-search.ts
+!extensions/search-hub.ts
 
 # All non-search files
 .pi/

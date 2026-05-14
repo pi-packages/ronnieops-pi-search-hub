@@ -1,11 +1,11 @@
-# pi-search-multi
+# pi-search-hub
 
 Unified web search + content extraction extension for [pi](https://pi.dev) with **12 backend providers** (all working). One `web_search` tool, one `web_read` tool, auto-fallback, RRF-ranked combine mode, and credential resolution via env/shell/literal.
 
 ## Installation
 
 ```bash
-pi install npm:pi-search-multi
+pi install npm:pi-search-hub
 ```
 
 > **Note for DuckDuckGo backend:** Requires the `ddgs` Python package. Install with:
@@ -220,7 +220,7 @@ curl "http://localhost:8888/search?q=test&format=json&count=3"
 
 ## Adding a new backend
 
-Backends are registered via the `BACKEND_DEFS` registry in `extensions/pi-search.ts`. Define a `search` function and add one entry to the registry:
+Backends are registered via the `BACKEND_DEFS` registry in `extensions/search-hub.ts`. Define a `search` function and add one entry to the registry:
 
 ```typescript
 const BACKEND_DEFS: Record<string, BackendRunner> = {

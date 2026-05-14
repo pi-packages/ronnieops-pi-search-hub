@@ -1,4 +1,4 @@
-# Title: pi-search-multi: a 12-backend search + content extraction extension I built for pi
+# Title: pi-search-hub: a 12-backend search + content extraction extension I built for pi
 
 ---
 
@@ -15,7 +15,7 @@
 
 I've been using [pi](https://pi.dev) as my daily coding agent for a while now, and one thing kept bugging me — the search tool was single-backend. Just DuckDuckGo. No fallback.
 
-So I built pi-search-multi, which chains **12 backends** together with auto-fallback and parallel combine mode. And since then it's grown some legs — content extraction, credential resolution, the works.
+So I built pi-search-hub, which chains **12 backends** together with auto-fallback and parallel combine mode. And since then it's grown some legs — content extraction, credential resolution, the works.
 
 **12 backends, no key needed for 3 of them:**
 
@@ -40,9 +40,9 @@ So I built pi-search-multi, which chains **12 backends** together with auto-fall
 - **Config deep-merge fix** — global backends no longer silently lost when project config exists
 - **ALL_CAPS warning** — if your API key looks like an env var name but the var is unset, you get a warning instead of silent failure
 
-Install: `pi install npm:pi-search-multi`
+Install: `pi install npm:pi-search-hub`
 
-Docs + benchmark: [github.com/ronnieops/pi-search-multi](https://github.com/ronnieops/pi-search-multi)
+Docs + benchmark: [github.com/ronnieops/pi-search-hub](https://github.com/ronnieops/pi-search-hub)
 
 MIT, open source, feedback welcome.
 
