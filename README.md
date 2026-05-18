@@ -88,7 +88,7 @@ The `web_read` tool supports:
 
 **Removed:** Stract, UnSearch, BoardReader, EntireWeb, Search1API, FreeAPITools.dev — no longer viable (public API removed, requires payment, or endpoint not implemented).
 
-> **Firecrawl note:** The current implementation calls `api.firecrawl.dev/v1/search`. Firecrawl has migrated to `v2/search` with a changed response shape (`data` is now an object with `web`/`images`/`news` arrays, not a flat array). The v1 endpoint may be deprecated — if Firecrawl results are empty or error, the backend needs a code update to v2.
+> **Firecrawl** uses `api.firecrawl.dev/v2/search` with a `data.web[]` response shape. The v1 endpoint is deprecated.
 
 ## Configuration
 
@@ -161,8 +161,19 @@ Or use the interactive setup:
 
 | Command          | Description                                              |
 | ---------------- | -------------------------------------------------------- |
-| `/search-setup`  | Interactive prompt to configure API keys for any backend |
-| `/search-status` | Show which backends are active and which have keys       |
+| `/search-setup`   | Interactive prompt to configure API keys and instance URLs          |
+| `/search-status`  | Show which backends are active, which have keys, and their status   |
+
+> **Tip:** After running `/search-setup` or editing your config, run `/reload` to activate changes without restarting pi.
+
+## Publishing
+
+This package is published to npm via CI using trusted publishing (OpenID Connect):
+
+1. Update `version` in `package.json` (e.g. `npm version patch`)
+2. Push the commit and tag: `git push --follow-tags`
+3. Create a GitHub Release from the tag (`gh release create v1.x.x`), or run the "Publish Package" workflow manually from the Actions tab
+4. CI verifies the version matches `package.json` and publishes to npm
 
 ## How auto mode works
 
