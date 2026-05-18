@@ -245,10 +245,10 @@ function loadConfig(cwd: string): SearchConfig {
 }
 
 const MISSING_KEY_HELP =
-	"Set the API key via env var (e.g. SEARCH_<BACKEND>_API_KEY), " +
-	"config reference (e.g. \"apiKey\": \"SOME_ENV_VAR\"), " +
+	"Set the API key via env var (SEARCH_<BACKEND>_API_KEY), " +
+	"config reference (\"apiKey\": \"SOME_ENV_VAR\"), " +
 	"shell command (\"apiKey\": \"!pass show api/backend\"), " +
-	"or a literal key in ~/.pi/agent/extensions/search.json or .pi/search.json. " +
+	"or a literal key in ~/.pi/agent/extensions/search.json. " +
 	"DuckDuckGo & Marginalia need no key.";
 
 const HTTP_TIMEOUT_MS = 30_000;
@@ -1442,7 +1442,7 @@ export default function (pi: ExtensionAPI) {
 			objective: Type.Optional(
 				Type.String({
 					description:
-						"Specific question to answer from the page. Use when only part matters.",
+						"CSS selector for targeted extraction. Use when only part of the page matters.",
 				}),
 			),
 		}),
