@@ -30,13 +30,13 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ronnieops/pi-search-multi.git"
+    "url": "git+https://github.com/ronnieops/pi-search-hub.git"
   },
   "pi": {
     "extensions": [
       "./extensions/search-hub.ts"
     ],
-    "image": "https://pi.dev/assets/packages/pi-search-multi.png"
+    "image": "https://pi.dev/assets/packages/pi-search-hub.png"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

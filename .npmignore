@@ -1,23 +1,23 @@
 # Session artifacts
 handoffs/
-scout-pr3-findings.md
-researcher-pr3-findings.md
-scout-findings.md
-researcher-findings.md
+scout*.md
+researcher*.md
 context.md
 research.md
+
+# Personal/social media drafts
+github-meta.md
+reddit-post.md
 
 # Git
 .git/
 .gitignore
 
-# All markdown except the intended docs
+# All markdown except README and benchmark scripts/docs
 *.md
 !README.md
 !benchmark/benchmark.mjs
 !benchmark/benchmark-report.md
-!github-meta.md
-!reddit-post.md
 
 # All TypeScript except the search extension
 extensions/*.ts
@@ -26,6 +26,12 @@ extensions/*.ts
 # All non-search files
 .pi/
 benchmark/benchmark-current-report.md
+
+# Ralph loop state
+.ralph/
+
+# Docs artifacts
+docs/
 
 # Misc
 *.log
