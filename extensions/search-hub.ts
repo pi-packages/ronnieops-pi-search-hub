@@ -3,7 +3,7 @@
  *
  * Backends (choose any, all disabled by default):
  *   duckduckgo    — ✅ Free, no key, via Python ddgs lib. Rate-limited.
- *   jina          — ✅ Free, no key, full markdown content via s.jina.ai (12th backend)
+ *   jina          — ✅ Free tier (API key optional for higher rate limits), full markdown via s.jina.ai
  *   marginalia    — ✅ Anti-SEO, "public" key optional. 354ms avg
  *   serper        — ✅ Google via serper.dev, 2500 free/mo. 667ms
  *   brave         — ✅ Brave Search, 2000 free/mo. 460ms
@@ -43,6 +43,11 @@ import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
+import {
+	parseMarginalia, parseWebSearchAPI, parseSerper, parseTavily,
+	parseExa, parseBrave, parseLangSearch, parseFirecrawl,
+	parsePerplexity, parseSearXNG, parseJina,
+} from "../backends/parsers.js";
 
 // ---------------------------------------------------------------------------
 // Types & Config
@@ -53,6 +58,8 @@ interface BackendConfig {
 	apiKey?: string;
 	/** SearXNG-specific: base URL of the self-hosted instance (e.g. http://localhost:8888) */
 	instanceUrl?: string;
+	/** Perplexity-specific: model variant (sonar, sonar-pro, sonar-deep-research, sonar-reasoning). Default: sonar */
+	model?: string;
 }
 
 interface SearchConfig {
@@ -207,7 +214,11 @@ function loadConfig(cwd: string): SearchConfig {
 		try {
 			const project = JSON.parse(readFileSync(projectPath, "utf-8"));
 			config = { ...config, ...project };
-			if (project.backends) {
+			// Guard: if project config set backends to null/undefined, restore global backends
+			if (config.backends == null) {
+				config.backends = preProjectBackends;
+			}
+			if (project.backends && typeof project.backends === "object") {
 				// Deep merge: merge per-backend so global backends not re-listed in project config are preserved
 				const merged = { ...preProjectBackends, ...config.backends };
 				for (const [key, val] of Object.entries(project.backends)) {
@@ -419,14 +430,9 @@ async function searchMarginalia(
 	}
 
 	const data = (await response.json()) as Record<string, unknown>;
-	const results = (data.results || []) as Array<Record<string, unknown>>;
 
 	return {
-		results: results.slice(0, numResults).map((r) => ({
-			title: (r.title as string) || "",
-			url: (r.url as string) || "",
-			snippet: (r.description as string || "").slice(0, 500),
-		})),
+		results: parseMarginalia(data, numResults),
 	};
 }
 
@@ -455,14 +461,8 @@ async function searchSerper(
 		throw new Error(`Serper ${sanitizeError(response.status, text)}`);
 	}
 	const data = (await response.json()) as Record<string, unknown>;
-	const rawResults = data.organic;
-	const results = Array.isArray(rawResults) ? rawResults : [];
 	return {
-		results: results.slice(0, numResults).map((r) => ({
-			title: (r.title as string) || "",
-			url: (r.link as string) || "",
-			snippet: (r.snippet as string) || "",
-		})),
+		results: parseSerper(data, numResults),
 	};
 }
 
@@ -495,15 +495,8 @@ async function searchTavily(
 		throw new Error(`Tavily ${sanitizeError(response.status, text)}`);
 	}
 	const data = (await response.json()) as Record<string, unknown>;
-	const rawResults = data.results;
-	const results = Array.isArray(rawResults) ? rawResults : [];
 	return {
-		results: results.slice(0, numResults).map((r) => ({
-			title: (r.title as string) || "",
-			url: (r.url as string) || "",
-			snippet: (r.content as string) || "",
-			content: r.content as string,
-		})),
+		results: parseTavily(data, numResults),
 	};
 }
 
@@ -543,14 +536,8 @@ async function searchExa(
 		throw new Error(`Exa ${sanitizeError(response.status, detail)}`);
 	}
 	const data = (await response.json()) as Record<string, unknown>;
-	const rawResults = data.results;
-	const results = Array.isArray(rawResults) ? rawResults : [];
 	return {
-		results: results.slice(0, numResults).map((r) => ({
-			title: (r.title as string) || "",
-			url: (r.url as string) || "",
-			snippet: ((r.text as string) || (r.highlight as string) || "").slice(0, 500),
-		})),
+		results: parseExa(data, numResults),
 	};
 }
 
@@ -579,18 +566,8 @@ async function searchBrave(
 		throw new Error(`Brave ${sanitizeError(response.status, text)}`);
 	}
 	const data = (await response.json()) as Record<string, unknown>;
-	const web = data.web;
-	if (!web || typeof web !== "object") {
-		return { results: [] };
-	}
-	const rawResults = (web as Record<string, unknown>).results;
-	const results = Array.isArray(rawResults) ? rawResults : [];
 	return {
-		results: results.slice(0, numResults).map((r) => ({
-			title: (r.title as string) || "",
-			url: (r.url as string) || "",
-			snippet: (r.description as string || "").slice(0, 500),
-		})),
+		results: parseBrave(data, numResults),
 	};
 }
 
@@ -620,14 +597,8 @@ async function searchLangSearch(
 		throw new Error(`LangSearch ${sanitizeError(response.status, text)}`);
 	}
 	const data = (await response.json()) as Record<string, unknown>;
-	const pages = (data.data as Record<string, unknown>)?.webPages as Record<string, unknown> | undefined;
-	const results = (pages?.value || data.results || data.data || []) as Array<Record<string, unknown>>;
 	return {
-		results: results.slice(0, numResults).map((r) => ({
-			title: (r.name as string) || (r.title as string) || "",
-			url: (r.url as string) || (r.link as string) || "",
-			snippet: ((r.snippet as string) || (r.description as string) || "").slice(0, 500),
-		})),
+		results: parseLangSearch(data, numResults),
 	};
 }
 
@@ -656,31 +627,8 @@ async function searchFirecrawl(
 		throw new Error(`Firecrawl ${sanitizeError(response.status, text)}`);
 	}
 	const data = (await response.json()) as Record<string, unknown>;
-	// v2 response: data = { web: [...], images?: [...], news?: [...] } or data = [...] (backwards compat)
-	const rawData = data.data;
-	let results: Array<Record<string, unknown>> = [];
-	if (Array.isArray(rawData)) {
-		// Flat array (v2 scrapeOptions format or v1 compat)
-		results = rawData;
-	} else if (typeof rawData === "object" && rawData !== null) {
-		// v2 default: { web: [...], images?: [...], news?: [...] }
-		const obj = rawData as Record<string, unknown>;
-		results = Array.isArray(obj.web) ? obj.web : [];
-		// If no web results but there are images/news, fall back to those
-		if (results.length === 0) {
-			if (Array.isArray(obj.images)) results = obj.images as Array<Record<string, unknown>>;
-			else if (Array.isArray(obj.news)) results = obj.news as Array<Record<string, unknown>>;
-		}
-	} else if (Array.isArray(data.results)) {
-		// v1 fallback
-		results = data.results;
-	}
 	return {
-		results: results.slice(0, numResults).map((r) => ({
-			title: (r.title as string) || "",
-			url: (r.url as string) || "",
-			snippet: ((r.description as string) || (r.snippet as string) || "").slice(0, 500),
-		})),
+		results: parseFirecrawl(data, numResults),
 	};
 }
 
@@ -717,20 +665,14 @@ async function searchWebSearchAPI(
 		throw new Error(`WebSearchAPI ${sanitizeError(response.status, text)}`);
 	}
 	const data = (await response.json()) as Record<string, unknown>;
-	const rawResults = data.organic;
-	const organic = Array.isArray(rawResults) ? rawResults : [];
 	return {
-		results: organic.slice(0, numResults).map((r) => ({
-			title: (r.title as string) || "",
-			url: (r.url as string) || "",
-			snippet: ((r.description as string) || "").slice(0, 500),
-		})),
+		results: parseWebSearchAPI(data, numResults),
 	};
 }
 // ---------------------------------------------------------------------------
 // Backend: Perplexity Sonar (free tier, unlimited queries, needs API key)
 // Endpoint: POST /chat/completions, auth: Authorization: Bearer
-// Uses sonar-pro model, extracts citations from response as search results
+// Uses sonar model (configurable), extracts citations from response as search results
 // ---------------------------------------------------------------------------
 
 async function searchPerplexity(
@@ -738,9 +680,10 @@ async function searchPerplexity(
 	numResults: number,
 	apiKey: string,
 	signal?: AbortSignal,
+	model?: string,
 ): Promise<{ results: Array<{ title: string; url: string; snippet?: string }> }> {
 	const body = {
-		model: "sonar",
+		model: model || "sonar",
 		messages: [
 			{
 				role: "user",
@@ -767,34 +710,7 @@ async function searchPerplexity(
 
 	const data = (await response.json()) as Record<string, unknown>;
 
-	// Extract citations from the response
-	const citations = (data.citations as string[]) || [];
-	const message = (data.choices as Array<Record<string, unknown>>)?.[0]?.message as Record<string, unknown> | undefined;
-	const answerText = (message?.content as string) || "";
-
-	// Build results from citations; use the answer text as the first result's snippet
-	const results: Array<{ title: string; url: string; snippet: string }> = [];
-
-	if (answerText) {
-		results.push({
-			title: `Answer: ${query}`,
-			url: citations[0] || "",
-			snippet: answerText.slice(0, 500),
-		});
-	}
-
-	for (const url of citations) {
-		// Extract a readable title from the URL
-		try {
-			const u = new URL(url);
-			const title = u.hostname.replace(/^www\./, "") + (u.pathname !== "/" ? u.pathname.slice(0, 60) : "");
-			results.push({ title: title || url, url, snippet: "" });
-		} catch {
-			results.push({ title: url, url, snippet: "" });
-		}
-	}
-
-	return { results: results.slice(0, numResults) };
+	return { results: parsePerplexity(data, query, numResults) };
 }
 
 // ---------------------------------------------------------------------------
@@ -840,15 +756,8 @@ async function searchSearXNG(
 	}
 
 	const data = (await response.json()) as Record<string, unknown>;
-	const rawResults = data.results as Array<Record<string, unknown>> | undefined;
-	const results = Array.isArray(rawResults) ? rawResults : [];
-
 	return {
-		results: results.slice(0, numResults).map((r) => ({
-			title: (r.title as string) || "",
-			url: (r.url as string) || "",
-			snippet: ((r.content as string) || (r.snippet as string) || "").slice(0, 500),
-		})),
+		results: parseSearXNG(data, numResults),
 	};
 }
 
@@ -887,16 +796,8 @@ async function searchJina(
 	}
 
 	const data = (await response.json()) as Record<string, unknown>;
-	// s.jina.ai returns { code, status, data: [{ url, title, content, ... }] }
-	const rawData = data.data as Array<Record<string, unknown>> | undefined;
-	const results = Array.isArray(rawData) ? rawData : [];
-
 	return {
-		results: results.slice(0, numResults).map((r) => ({
-			title: (r.title as string) || "",
-			url: (r.url as string) || "",
-			content: ((r.content as string) || (r.description as string) || "").slice(0, 2000),
-		})),
+		results: parseJina(data, numResults),
 	};
 }
 
@@ -907,6 +808,7 @@ async function searchJina(
 interface BackendRunner {
 	needsKey: boolean;
 	needsKeyFromConfig: boolean;
+	optionalKey: boolean;
 	needsInstanceUrl: boolean;
 	label: string;
 	setupLabel: string | null;
@@ -917,6 +819,7 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	duckduckgo: {
 		needsKey: false,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "DuckDuckGo",
 		setupLabel: null,
@@ -926,11 +829,12 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 		},
 	},
 	jina: {
-		needsKey: true,
+		needsKey: false,
 		needsKeyFromConfig: false,
+		optionalKey: true,
 		needsInstanceUrl: false,
 		label: "Jina AI",
-		setupLabel: "Jina AI (free tier, API key required)",
+		setupLabel: "Jina AI (free tier, API key optional for higher rate limits)",
 		search: async (query, numResults, { key, signal }) => {
 			return await searchJina(query, numResults, key, signal);
 		},
@@ -938,6 +842,7 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	marginalia: {
 		needsKey: false,
 		needsKeyFromConfig: true,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "Marginalia",
 		setupLabel: null,
@@ -949,6 +854,7 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	serper: {
 		needsKey: true,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "Serper",
 		setupLabel: "Serper (Google — 2500 free queries, one-time)",
@@ -960,6 +866,7 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	tavily: {
 		needsKey: true,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "Tavily",
 		setupLabel: "Tavily (AI agent search — 1000 free calls/month)",
@@ -971,6 +878,7 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	exa: {
 		needsKey: true,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "Exa",
 		setupLabel: "Exa (AI search — 1000 free queries/month)",
@@ -982,6 +890,7 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	brave: {
 		needsKey: true,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "Brave",
 		setupLabel: "Brave Search (metered billing ~$5/mo credit)",
@@ -993,6 +902,7 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	langsearch: {
 		needsKey: true,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "LangSearch",
 		setupLabel: "LangSearch (genuinely free, no CC)",
@@ -1004,6 +914,7 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	firecrawl: {
 		needsKey: true,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "Firecrawl",
 		setupLabel: "Firecrawl (500 free credits)",
@@ -1015,6 +926,7 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	websearchapi: {
 		needsKey: true,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "WebSearchAPI",
 		setupLabel: "WebSearchAPI.ai (2000 free credits)",
@@ -1026,17 +938,21 @@ const BACKEND_DEFS: Record<string, BackendRunner> = {
 	perplexity: {
 		needsKey: true,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: false,
 		label: "Perplexity Sonar",
 		setupLabel: "Perplexity Sonar (paid, usage-based)",
 		search: async (query, numResults, { key, signal }) => {
-			const pp = await searchPerplexity(query, numResults, key!, signal);
+			const bc = (config.backends as Record<string, BackendConfig> | undefined)?.perplexity;
+			const model = (bc as Record<string, unknown>)?.model as string | undefined;
+			const pp = await searchPerplexity(query, numResults, key!, signal, model);
 			return { results: pp.results };
 		},
 	},
 	searxng: {
 		needsKey: false,
 		needsKeyFromConfig: false,
+		optionalKey: false,
 		needsInstanceUrl: true,
 		label: "SearXNG",
 		setupLabel: "SearXNG (self-hosted, needs instance URL)",
@@ -1250,6 +1166,9 @@ export default function (pi: ExtensionAPI) {
 					const label = def.label;
 					throw new Error(`${label} backend not configured. ${MISSING_KEY_HELP}`);
 				}
+			} else if (def.optionalKey) {
+				// Optionally resolve key — don't throw if missing
+				key = resolveBackendKey(backend);
 			}
 
 			let instanceUrl: string | undefined;
@@ -1471,16 +1390,24 @@ export default function (pi: ExtensionAPI) {
 			),
 		}),
 		async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+			refreshConfig(ctx.cwd);
+
 			const url = params.url.startsWith("https://") || params.url.startsWith("http://")
 				? params.url
 				: `https://${params.url}`;
 
-			// Build Jina Reader URL (free, no key, returns markdown)
+			// Build Jina Reader URL
 			const readerUrl = new URL("https://r.jina.ai/" + url);
 
 			const headers: Record<string, string> = {
 				"Accept": "text/plain",
 			};
+
+			// Optional Jina API key for higher rate limits (fallback to no-auth)
+			const jinaKey = resolveBackendKey("jina");
+			if (jinaKey) {
+				headers["Authorization"] = `Bearer ${jinaKey}`;
+			}
 
 			if (params.fresh) {
 				headers["x-no-cache"] = "true";

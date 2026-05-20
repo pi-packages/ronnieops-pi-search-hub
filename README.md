@@ -68,7 +68,7 @@ The `web_read` tool supports:
 | # | Backend               | Free Tier                | API Key? | How to get key                                                    |
 | - | --------------------- | ------------------------ | :------: | ----------------------------------------------------------------- |
 | 1 | **DuckDuckGo**        | Unlimited (rate-limited) |  **No**  | `pip install ddgs` (Linux/macOS: `pip3`)|
-| 2 | **Jina AI**           | Free tier (API key req.)  |   Yes    | [jina.ai](https://jina.ai)                                        |
+| 2 | **Jina AI**           | Free tier (key optional)  |   Opt.   | [jina.ai](https://jina.ai)                                        |
 | 3 | **Marginalia Search** | Unlimited (rate-limited) | **No**†  | [marginalia.nu](https://www.marginalia.nu/marginalia-search/api/) |
 | 4 | **Tavily**            | 1,000 calls/month        |   Yes    | [tavily.com](https://tavily.com)                                  |
 | 5 | **Serper** (Google)   | 2,500 free queries (one-time) |   Yes    | [serper.dev](https://serper.dev)                                  |
@@ -82,13 +82,15 @@ The `web_read` tool supports:
 
 > † Marginalia Search uses `public` as a shared API key — no registration required, but subject to a shared rate limit.
 >
-> **Jina AI** (s.jina.ai) returns full markdown content. Free tier requires a free API key from [jina.ai](https://jina.ai).
+> **Jina AI** (s.jina.ai) returns full markdown content. Free tier works without an API key (rate-limited). Add a free API key from [jina.ai](https://jina.ai) for higher rate limits — the key is shared between the `jina` search backend and `web_read`.
+>
+> **Perplexity Sonar** supports multiple model variants. Set `model` in your Perplexity backend config to choose: `sonar` (default, fast), `sonar-pro` (higher quality), `sonar-deep-research` (multi-step reasoning), or `sonar-reasoning` (DeepSeek R1-based).
 >
 > **SearXNG** is a self-hosted metasearch engine. Run your own instance (or use a public one), no API key required. Configure the instance URL in `.pi/search.json`.
-
-**Removed:** Stract, UnSearch, BoardReader, EntireWeb, Search1API, FreeAPITools.dev — no longer viable (public API removed, requires payment, or endpoint not implemented).
-
+>
 > **Firecrawl** uses `api.firecrawl.dev/v2/search` with a `data.web[]` response shape. The v1 endpoint is deprecated.
+>
+> **Exa** (March 2026) includes content for the first 10 results per request at no extra cost. Content extraction is enabled by default.
 
 ## Configuration
 
@@ -111,7 +113,7 @@ Configure backends globally (all projects) or per-project:
     "firecrawl":  { "enabled": true, "apiKey": "FIRECRAWL_API_KEY" },
     "langsearch": { "enabled": true, "apiKey": "LANGSEARCH_API_KEY" },
     "websearchapi":{ "enabled": true, "apiKey": "WEBSEARCHAPI_API_KEY" },
-    "perplexity": { "enabled": true, "apiKey": "PERPLEXITY_API_KEY" },
+    "perplexity": { "enabled": true, "apiKey": "PERPLEXITY_API_KEY", "model": "sonar" },
     "searxng":    { "enabled": true, "instanceUrl": "http://localhost:8888" }
   }
 }
@@ -181,7 +183,7 @@ This package is published to npm via CI using trusted publishing (OpenID Connect
 
 1. Tries each enabled backend in order from your config
 2. If a backend fails (rate limit, auth error, etc.), moves to the next one
-3. DuckDuckGo requires no API key; Jina AI needs a free API key. Both serve as safety nets
+3. DuckDuckGo requires no API key; Jina AI works without a key (rate-limited). Both serve as safety nets
 4. Returns results from the first backend that succeeds
 5. If all backends fail, reports the collected errors
 
@@ -210,8 +212,8 @@ RRF assigns each result a score of `Σ(1 / (60 + rank_i))` across all backends t
 ## Testing
 
 ```bash
-# Run the full benchmark against all backends
-node benchmark/benchmark.mjs
+# Run unit tests for backend parsers
+npx vitest run backends/parsers.test.ts
 
 # Quick test Jina AI (with your free API key)
 curl -s -H "Authorization: Bearer $JINA_API_KEY" "https://s.jina.ai/?q=test&format=json" | jq .
@@ -222,7 +224,7 @@ curl -X POST "https://api.exa.ai/search" \
   -H "x-api-key: $KEY" \
   -d '{"query": "test", "numResults": 3, "contents": {"text": true}}'
 
-# Quick test Perplexity Sonar
+# Quick test Perplexity Sonar (use "sonar-pro" or "sonar-deep-research" for model)
 curl -X POST "https://api.perplexity.ai/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $KEY" \

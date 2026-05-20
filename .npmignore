@@ -13,25 +13,26 @@ reddit-post.md
 .git/
 .gitignore
 
-# All markdown except README and benchmark scripts/docs
+# All markdown except README
 *.md
 !README.md
-!benchmark/benchmark.mjs
-!benchmark/benchmark-report.md
 
-# All TypeScript except the search extension
+# All TypeScript except the search extension and backends
 extensions/*.ts
 !extensions/search-hub.ts
 
 # All non-search files
 .pi/
-benchmark/benchmark-current-report.md
+benchmark/
 
 # Ralph loop state
 .ralph/
 
 # Docs artifacts
 docs/
+
+# Tests
+backends/*.test.ts
 
 # Misc
 *.log
