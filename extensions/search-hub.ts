@@ -762,7 +762,7 @@ async function searchSearXNG(
 }
 
 // ---------------------------------------------------------------------------
-// Backend: Jina AI (s.jina.ai) — free, no API key needed, returns full markdown content
+// Backend: Jina AI (s.jina.ai) — search results via s.jina.ai; requires API key from jina.ai (free). web_read uses r.jina.ai (Reader, no key needed).
 // Endpoint: GET https://s.jina.ai/?q=<query>, returns 5 results as markdown or JSON
 // ---------------------------------------------------------------------------
 
@@ -1606,7 +1606,7 @@ export default function (pi: ExtensionAPI) {
 			if (activeBackends.length === 1 && activeBackends[0] === "duckduckgo") {
 				lines.push("");
 				lines.push("Only DuckDuckGo is active (no API key needed).");
-				lines.push("Add Jina AI (free, no key) or run /search-setup to add other backends.");
+				lines.push("Add a search backend with /search-setup to get more results.");
 			}
 
 			ctx.ui.notify(lines.join("\n"), "info");

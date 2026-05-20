@@ -9,6 +9,7 @@ pi install npm:pi-search-hub
 ```
 
 > **Note for DuckDuckGo backend:** Requires the `ddgs` Python package. Install with:
+>
 > - Linux/macOS: `pip3 install ddgs`
 > - Windows: `pip install ddgs`
 
@@ -40,6 +41,7 @@ Search for "Rust vs Go performance benchmarks" with combine=true to get results 
 ```
 
 **Combine mode benefits:**
+
 - Broader coverage across multiple search indexes
 - Results ranked by RRF — position-based scoring across all backends
 - Each result shows which backend found it
@@ -58,6 +60,7 @@ Read https://docs.example.com/api-reference
 ```
 
 The `web_read` tool supports:
+
 - **objective** — CSS selector to target specific content (e.g. "div.article-body")
 - **keywords** — relevant terms to highlight on long pages
 - **mode** — `rush` for speed (return innerText) or `smart` (markdown extraction)
@@ -65,20 +68,20 @@ The `web_read` tool supports:
 
 ## Supported Backends
 
-| # | Backend               | Free Tier                | API Key? | How to get key                                                    |
-| - | --------------------- | ------------------------ | :------: | ----------------------------------------------------------------- |
-| 1 | **DuckDuckGo**        | Unlimited (rate-limited) |  **No**  | `pip install ddgs` (Linux/macOS: `pip3`)|
-| 2 | **Jina AI**           | Free tier (key optional)  |   Opt.   | [jina.ai](https://jina.ai)                                        |
-| 3 | **Marginalia Search** | Unlimited (rate-limited) | **No**†  | [marginalia.nu](https://www.marginalia.nu/marginalia-search/api/) |
-| 4 | **Tavily**            | 1,000 calls/month        |   Yes    | [tavily.com](https://tavily.com)                                  |
-| 5 | **Serper** (Google)   | 2,500 free queries (one-time) |   Yes    | [serper.dev](https://serper.dev)                                  |
-| 6 | **Brave**             | 2,000 queries/month      |   Yes    | [brave.com/search/api](https://brave.com/search/api)              |
-| 7 | **Firecrawl**         | 500 free credits         |   Yes    | [firecrawl.dev](https://www.firecrawl.dev)                        |
-| 8 | **Exa**               | 1,000 free queries/month  |   Yes    | [exa.ai](https://dashboard.exa.ai/api-keys)                       |
-| 9 | **LangSearch**        | Genuinely free, no CC    |   Yes    | [langsearch.com](https://langsearch.com)                          |
-| 10 | **WebSearchAPI.ai**   | 2,000 free credits       |   Yes    | [websearchapi.ai](https://www.websearchapi.ai)                    |
-| 11 | **Perplexity Sonar**  | Paid (usage-based)        |   Yes    | [perplexity.ai](https://docs.perplexity.ai)                       |
-| 12 | **SearXNG**           | Self-hosted, unlimited   |  **No**  | [docs.searxng.org](https://docs.searxng.org)                      |
+| #   | Backend               | Free Tier                     | API Key? | How to get key                                                    |
+| --- | --------------------- | ----------------------------- | :------: | ----------------------------------------------------------------- |
+| 1   | **DuckDuckGo**        | Unlimited (rate-limited)      |  **No**  | `pip install ddgs` (Linux/macOS: `pip3`)                          |
+| 2   | **Jina AI**           | Free tier (key optional)      |   Opt.   | [jina.ai](https://jina.ai)                                        |
+| 3   | **Marginalia Search** | Unlimited (rate-limited)      | **No**†  | [marginalia.nu](https://www.marginalia.nu/marginalia-search/api/) |
+| 4   | **Tavily**            | 1,000 calls/month             |   Yes    | [tavily.com](https://tavily.com)                                  |
+| 5   | **Serper** (Google)   | 2,500 free queries (one-time) |   Yes    | [serper.dev](https://serper.dev)                                  |
+| 6   | **Brave**             | 2,000 queries/month           |   Yes    | [brave.com/search/api](https://brave.com/search/api)              |
+| 7   | **Firecrawl**         | 500 free credits              |   Yes    | [firecrawl.dev](https://www.firecrawl.dev)                        |
+| 8   | **Exa**               | 1,000 free queries/month      |   Yes    | [exa.ai](https://dashboard.exa.ai/api-keys)                       |
+| 9   | **LangSearch**        | Genuinely free, no CC         |   Yes    | [langsearch.com](https://langsearch.com)                          |
+| 10  | **WebSearchAPI.ai**   | 2,000 free credits            |   Yes    | [websearchapi.ai](https://www.websearchapi.ai)                    |
+| 11  | **Perplexity Sonar**  | Paid (usage-based)            |   Yes    | [perplexity.ai](https://docs.perplexity.ai)                       |
+| 12  | **SearXNG**           | Self-hosted, unlimited        |  **No**  | [docs.searxng.org](https://docs.searxng.org)                      |
 
 > † Marginalia Search uses `public` as a shared API key — no registration required, but subject to a shared rate limit.
 >
@@ -104,17 +107,21 @@ Configure backends globally (all projects) or per-project:
   "defaultBackend": "auto",
   "backends": {
     "duckduckgo": { "enabled": true },
-    "jina":       { "enabled": true, "apiKey": "JINA_API_KEY" },
+    "jina": { "enabled": true, "apiKey": "JINA_API_KEY" },
     "marginalia": { "enabled": true },
-    "serper":     { "enabled": true, "apiKey": "SERPER_API_KEY" },
-    "tavily":     { "enabled": true, "apiKey": "TAVILY_API_KEY" },
-    "brave":      { "enabled": true, "apiKey": "BRAVE_API_KEY" },
-    "exa":        { "enabled": true, "apiKey": "EXA_API_KEY" },
-    "firecrawl":  { "enabled": true, "apiKey": "FIRECRAWL_API_KEY" },
+    "serper": { "enabled": true, "apiKey": "SERPER_API_KEY" },
+    "tavily": { "enabled": true, "apiKey": "TAVILY_API_KEY" },
+    "brave": { "enabled": true, "apiKey": "BRAVE_API_KEY" },
+    "exa": { "enabled": true, "apiKey": "EXA_API_KEY" },
+    "firecrawl": { "enabled": true, "apiKey": "FIRECRAWL_API_KEY" },
     "langsearch": { "enabled": true, "apiKey": "LANGSEARCH_API_KEY" },
-    "websearchapi":{ "enabled": true, "apiKey": "WEBSEARCHAPI_API_KEY" },
-    "perplexity": { "enabled": true, "apiKey": "PERPLEXITY_API_KEY", "model": "sonar" },
-    "searxng":    { "enabled": true, "instanceUrl": "http://localhost:8888" }
+    "websearchapi": { "enabled": true, "apiKey": "WEBSEARCHAPI_API_KEY" },
+    "perplexity": {
+      "enabled": true,
+      "apiKey": "PERPLEXITY_API_KEY",
+      "model": "sonar"
+    },
+    "searxng": { "enabled": true, "instanceUrl": "http://localhost:8888" }
   }
 }
 ```
@@ -123,12 +130,12 @@ Configure backends globally (all projects) or per-project:
 
 The `apiKey` field supports four formats (following pi-web-providers convention):
 
-| `apiKey` value | Resolved from | Example |
-|---|---|---|
-| `"SERPER_API_KEY"` | `process.env.SERPER_API_KEY` | ALL_CAPS → env var |
-| `"!pass show api/serper"` | stdout of shell command (cached) | `!` prefix → exec |
-| `"sk-abc123..."` | Used as-is | Literal key (backwards compatible) |
-| *(unset)* | `SEARCH_<BACKEND>_API_KEY` env fallback | Auto-enables backend |
+| `apiKey` value            | Resolved from                           | Example                            |
+| ------------------------- | --------------------------------------- | ---------------------------------- |
+| `"SERPER_API_KEY"`        | `process.env.SERPER_API_KEY`            | ALL_CAPS → env var                 |
+| `"!pass show api/serper"` | stdout of shell command (cached)        | `!` prefix → exec                  |
+| `"sk-abc123..."`          | Used as-is                              | Literal key (backwards compatible) |
+| _(unset)_                 | `SEARCH_<BACKEND>_API_KEY` env fallback | Auto-enables backend               |
 
 **Env var references:** Any ALL_CAPS string is treated as an environment variable name (not a literal). If the referenced env var is unset, a warning is printed (your literal key is not silently discarded).
 
@@ -161,10 +168,10 @@ Or use the interactive setup:
 
 ## Commands
 
-| Command          | Description                                              |
-| ---------------- | -------------------------------------------------------- |
-| `/search-setup`   | Interactive prompt to configure API keys and instance URLs          |
-| `/search-status`  | Show which backends are active, which have keys, and their status   |
+| Command          | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `/search-setup`  | Interactive prompt to configure API keys and instance URLs        |
+| `/search-status` | Show which backends are active, which have keys, and their status |
 
 > **Tip:** After running `/search-setup` or editing your config, run `/reload` to activate changes without restarting pi.
 
