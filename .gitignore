@@ -9,11 +9,16 @@ search.json
 search.json.local
 *.secret.*
 
-# Dev artifacts
-benchmark/benchmark-current-report.md
+# Dev/research docs (local only — never push)
+findings.md
+researcher*.md
+scout*.md
+handoffs/
+docs/
+benchmark/
 
 # Benchmark reports
-benchmark/
+benchmark/benchmark-current-report.md
 
 # Subagent session artifacts
 context.md
@@ -26,16 +31,6 @@ extensions/ralph-loop.ts
 # Ralph loop state (local development)
 .ralph/
 
-# Docs/ideation artifacts
-docs/
-
 # Personal/social media drafts
 github-meta.md
 reddit-post.md
-
-# Subagent research artifacts (generated locally)
-researcher*.md
-scout*.md
-
-# Handoff documents from subagent sessions
-handoffs/

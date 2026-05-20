@@ -71,7 +71,7 @@ The `web_read` tool supports:
 | #   | Backend               | Free Tier                     | API Key? | How to get key                                                    |
 | --- | --------------------- | ----------------------------- | :------: | ----------------------------------------------------------------- |
 | 1   | **DuckDuckGo**        | Unlimited (rate-limited)      |  **No**  | `pip install ddgs` (Linux/macOS: `pip3`)                          |
-| 2   | **Jina AI**           | Free tier (key optional)      |   Opt.   | [jina.ai](https://jina.ai)                                        |
+| 2   | **Jina AI**           | Search: key req. web_read: free (no key) |   Yes   | [jina.ai](https://jina.ai)   |
 | 3   | **Marginalia Search** | Unlimited (rate-limited)      | **No**†  | [marginalia.nu](https://www.marginalia.nu/marginalia-search/api/) |
 | 4   | **Tavily**            | 1,000 calls/month             |   Yes    | [tavily.com](https://tavily.com)                                  |
 | 5   | **Serper** (Google)   | 2,500 free queries (one-time) |   Yes    | [serper.dev](https://serper.dev)                                  |
@@ -85,7 +85,7 @@ The `web_read` tool supports:
 
 > † Marginalia Search uses `public` as a shared API key — no registration required, but subject to a shared rate limit.
 >
-> **Jina AI** (s.jina.ai) returns full markdown content. Free tier works without an API key (rate-limited). Add a free API key from [jina.ai](https://jina.ai) for higher rate limits — the key is shared between the `jina` search backend and `web_read`.
+> **Jina AI:** Search (`s.jina.ai`) requires a free API key from [jina.ai](https://jina.ai). Content extraction via `web_read` uses Jina Reader (`r.jina.ai`) which is **free and needs no API key**.
 >
 > **Perplexity Sonar** supports multiple model variants. Set `model` in your Perplexity backend config to choose: `sonar` (default, fast), `sonar-pro` (higher quality), `sonar-deep-research` (multi-step reasoning), or `sonar-reasoning` (DeepSeek R1-based).
 >
@@ -190,7 +190,7 @@ This package is published to npm via CI using trusted publishing (OpenID Connect
 
 1. Tries each enabled backend in order from your config
 2. If a backend fails (rate limit, auth error, etc.), moves to the next one
-3. DuckDuckGo requires no API key; Jina AI works without a key (rate-limited). Both serve as safety nets
+3. Jina AI search requires a free API key from [jina.ai](https://jina.ai) (get one at jina.ai/reader). DuckDuckGo requires no API key. Both serve as safety nets
 4. Returns results from the first backend that succeeds
 5. If all backends fail, reports the collected errors
 
