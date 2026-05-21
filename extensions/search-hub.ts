@@ -64,6 +64,7 @@ interface BackendConfig {
 
 interface SearchConfig {
 	defaultBackend?: string;
+	selectionStrategy?: "sequential" | "random" | "round-robin" | "best-latency";
 	backends?: {
 		duckduckgo?: BackendConfig;
 		marginalia?: BackendConfig;
@@ -1106,6 +1107,73 @@ function formatCombinedResults(
 /** Module-level config accessible from helper functions like resolveBackendKey(). */
 let config: SearchConfig = { defaultBackend: "duckduckgo", backends: {} };
 
+// -------------------------------------------------------------------------
+// Selection strategy state
+// -------------------------------------------------------------------------
+
+/** Round-robin counter — increments on each call, never resets until pi restarts. */
+let roundRobinIndex = 0;
+
+
+/**
+ * Latency samples per backend. Each sample is { ms, timestamp }.
+ * Samples older than LATENCY_TTL_MS are pruned on every write.
+ * Used by the "best-latency" selection strategy.
+ */
+const LATENCY_TTL_MS = 60_000;
+const latencyMap = new Map<string, { ms: number; timestamp: number }[]>();
+
+
+function recordLatency(backend: string, ms: number): void {
+	const samples = latencyMap.get(backend) ?? [];
+	const now = Date.now();
+	// Prune stale samples
+	const fresh = samples.filter(s => now - s.timestamp < LATENCY_TTL_MS);
+	fresh.push({ ms, timestamp: now });
+	latencyMap.set(backend, fresh);
+}
+
+function selectBackendsForFallback(
+	strategy: "sequential" | "random" | "round-robin" | "best-latency",
+	activeBackends: string[],
+): string[] {
+	const backends = [...activeBackends];
+	switch (strategy) {
+		case "random": {
+			for (let i = backends.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[backends[i], backends[j]] = [backends[j], backends[i]];
+			}
+			return backends;
+		}
+		case "round-robin": {
+			const index = roundRobinIndex % backends.length;
+			roundRobinIndex++;
+			const selected = backends[index];
+			// Put selected first, then the rest
+			return [selected, ...backends.filter((b) => b !== selected)];
+		}
+		case "best-latency": {
+			return backends.sort((a, b) => {
+				const aSamples = latencyMap.get(a) ?? [];
+				const bSamples = latencyMap.get(b) ?? [];
+				const aAvg =
+					aSamples.length > 0
+						? aSamples.reduce((sum, s) => sum + s.ms, 0) / aSamples.length
+						: Infinity;
+				const bAvg =
+					bSamples.length > 0
+						? bSamples.reduce((sum, s) => sum + s.ms, 0) / bSamples.length
+						: Infinity;
+				return aAvg - bAvg;
+			});
+		}
+		case "sequential":
+		default:
+			return backends;
+	}
+}
+
 export default function (pi: ExtensionAPI) {
 	let activeBackends: string[] = [];
 	let configCacheTime = 0;
@@ -1316,11 +1384,17 @@ export default function (pi: ExtensionAPI) {
 					},
 				};
 			} else {
-				// Fallback mode: try each enabled backend in order
+				// Fallback mode: select backends using configured strategy
+				const orderedBackends = selectBackendsForFallback(
+					config.selectionStrategy ?? "sequential",
+					activeBackends,
+				);
 				const errors: string[] = [];
-				for (const backend of activeBackends) {
+				for (const backend of orderedBackends) {
+					const t0 = Date.now();
 					try {
 						const results = await runBackend(backend, params.query, numResults, signal);
+						recordLatency(backend, Date.now() - t0);
 						return {
 							content: [
 								{
@@ -1559,38 +1633,45 @@ export default function (pi: ExtensionAPI) {
 			);
 
 			// Collect table rows first to compute aligned column widths
-			type Row = [string, string];
+			type Row = [string, string, string];
 			const rows: Row[] = [];
 
 			for (const [name, label] of Object.entries(backendLabels)) {
 				const { configured, source } = getKeySource(name);
 				const bc = config.backends?.[name as keyof typeof config.backends];
+				const samples = latencyMap.get(name) ?? [];
+				const avgLatency = samples.length > 0
+					? `${Math.round(samples.reduce((sum, s) => sum + s.ms, 0) / samples.length)}ms`
+					: "\u2014";
+
 				if (name === "duckduckgo") {
-					rows.push([label, "✓ enabled, key: — (free)"]);
+					rows.push([label, "\u2713 enabled, key: \u2014 (free)", avgLatency]);
 				} else if (name === "marginalia" && bc?.enabled) {
-					rows.push([label, "✓ enabled, key: optional (public)"]);
+					rows.push([label, "\u2713 enabled, key: optional (public)", avgLatency]);
 				} else if (name === "searxng" && bc?.enabled) {
 					const urlInfo = bc.instanceUrl ? `url: ${bc.instanceUrl}` : "no URL set";
-					rows.push([label, `✓ enabled, ${urlInfo}${configured ? `, key: ✓ (${source})` : ", key: —"}`]);
+					rows.push([label, `\u2713 enabled, ${urlInfo}${configured ? `, key: \u2713 (${source})` : ", key: \u2014"}`, avgLatency]);
 				} else if (bc?.enabled) {
-					rows.push([label, `✓ enabled, key: ✓${source ? ` (${source})` : ""}`]);
+					rows.push([label, `\u2713 enabled, key: \u2713${source ? ` (${source})` : ""}`, avgLatency]);
 				} else {
-					rows.push([label, `— disabled${configured ? `, key: ✓ (${source})` : ""}`]);
+					rows.push([label, `\u2014 disabled${configured ? `, key: \u2713 (${source})` : ""}`, avgLatency]);
 				}
 			}
 
 			// Compute column widths from headers + data
 			const col1Header = "Backend";
 			const col2Header = "Status";
+			const col3Header = "Avg Latency";
 			const w1 = rows.reduce((max, [c]) => Math.max(max, c.length), col1Header.length);
 			const w2 = rows.reduce((max, [, s]) => Math.max(max, s.length), col2Header.length);
+			const w3 = rows.reduce((max, [, , s]) => Math.max(max, s.length), col3Header.length);
 
 			const pad = (s: string, w: number) => s + " ".repeat(w - s.length);
 
 			const tableLines = [
-				`| ${pad(col1Header, w1)} | ${pad(col2Header, w2)} |`,
-				`| ${"-".repeat(w1)} | ${"-".repeat(w2)} |`,
-				...rows.map(([c1, c2]) => `| ${pad(c1, w1)} | ${pad(c2, w2)} |`),
+				`| ${pad(col1Header, w1)} | ${pad(col2Header, w2)} | ${pad(col3Header, w3)} |`,
+				`| ${"-".repeat(w1)} | ${"-".repeat(w2)} | ${"-".repeat(w3)} |`,
+				...rows.map(([c1, c2, c3]) => `| ${pad(c1, w1)} | ${pad(c2, w2)} | ${pad(c3, w3)} |`),
 			];
 
 			const resolvedDefault = activeBackends[0] || "none";
@@ -1598,6 +1679,7 @@ export default function (pi: ExtensionAPI) {
 				"## Search Backend Status",
 				`Configured default: ${config.defaultBackend || "none"}`,
 				`Resolved default: ${resolvedDefault}`,
+				`Strategy: ${config.selectionStrategy || "sequential"}`,
 				`Active: ${activeBackends.join(", ") || "none"}`,
 				"",
 				...tableLines,
@@ -1612,6 +1694,7 @@ export default function (pi: ExtensionAPI) {
 			ctx.ui.notify(lines.join("\n"), "info");
 		},
 	});
+
 
 	// -----------------------------------------------------------------------
 	// Session start
