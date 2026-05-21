@@ -27,6 +27,8 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify version
         run: |
@@ -38,3 +40,5 @@ jobs:
           echo "Publishing pi-search-hub@$PKG_VERSION"
 
       - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
