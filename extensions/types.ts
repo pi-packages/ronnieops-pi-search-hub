@@ -15,6 +15,10 @@ export interface SearchConfig {
 	defaultBackend?: string;
 	combine?: boolean;
 	selectionStrategy?: "sequential" | "random" | "round-robin" | "best-latency";
+	/** Cache TTL in milliseconds. Default: 300000 (5 min). Set to 0 to disable. */
+	cacheTtl?: number;
+	/** Max cached queries. Default: 100. */
+	cacheMax?: number;
 	backends?: {
 		duckduckgo?: BackendConfig;
 		marginalia?: BackendConfig;

@@ -3,7 +3,7 @@
  */
 
 import type { BackendRunner, BackendConfig, SearchResult } from "../types.js";
-import { MISSING_KEY_HELP, waitForCooldown, markCooldown } from "../utils.js";
+import { MISSING_KEY_HELP, waitForCooldown, markCooldown, searchCache, cacheKey } from "../utils.js";
 import { resolveBackendKey } from "../credentials.js";
 import { config } from "../config.js";
 
@@ -181,7 +181,15 @@ export async function runBackend(
 	query: string,
 	numResults: number,
 	signal?: AbortSignal,
+	options?: { skipCache?: boolean },
 ): Promise<SearchResult[]> {
+	// Check cache first
+	const key = cacheKey(query, backend, numResults);
+	if (!options?.skipCache) {
+		const cached = searchCache.get(key);
+		if (cached) return cached;
+	}
+
 	await waitForCooldown(backend);
 	try {
 		const def = BACKEND_DEFS[backend];
@@ -212,6 +220,8 @@ export async function runBackend(
 		}
 
 		const result = await def.search(query, numResults, { key, instanceUrl, signal });
+		// Cache the result
+		searchCache.set(cacheKey(query, backend, numResults), result.results);
 		return result.results;
 	} finally {
 		markCooldown(backend);
