@@ -5,6 +5,12 @@
 export interface BackendConfig {
 	enabled?: boolean;
 	apiKey?: string;
+	/** Per-backend timeout override in milliseconds. Default: 30000 */
+	timeout?: number;
+	/** Per-backend max results override. Default: 10 */
+	maxResults?: number;
+	/** Per-backend extra headers */
+	headers?: Record<string, string>;
 	/** SearXNG-specific: base URL of the self-hosted instance (e.g. http://localhost:8888) */
 	instanceUrl?: string;
 	/** Perplexity-specific: model variant (sonar, sonar-pro, sonar-deep-research, sonar-reasoning). Default: sonar */
@@ -62,6 +68,6 @@ export interface BackendRunner {
 	search: (
 		query: string,
 		numResults: number,
-		deps: { key?: string; instanceUrl?: string; signal?: AbortSignal },
+		deps: { key?: string; instanceUrl?: string; signal?: AbortSignal; backendConfig?: BackendConfig },
 	) => Promise<{ results: SearchResult[] }>;
 }

@@ -53,10 +53,11 @@ export function clearCooldowns() {
 // Signal helpers
 // ---------------------------------------------------------------------------
 
-/** Combine an optional caller signal with a default timeout. */
-export function timeoutSignal(signal?: AbortSignal): AbortSignal | undefined {
-	if (!signal) return AbortSignal.timeout(HTTP_TIMEOUT_MS);
-	return AbortSignal.any([signal, AbortSignal.timeout(HTTP_TIMEOUT_MS)]);
+/** Combine an optional caller signal with a timeout (default or custom). */
+export function timeoutSignal(signal?: AbortSignal, timeoutMs?: number): AbortSignal | undefined {
+	const effectiveTimeout = timeoutMs ?? HTTP_TIMEOUT_MS;
+	if (!signal) return AbortSignal.timeout(effectiveTimeout);
+	return AbortSignal.any([signal, AbortSignal.timeout(effectiveTimeout)]);
 }
 
 // ---------------------------------------------------------------------------

@@ -224,7 +224,8 @@ export async function runBackend(
 			}
 		}
 
-		const result = await def.search(query, numResults, { key, instanceUrl, signal });
+		const bc = (config.backends as Record<string, BackendConfig> | undefined)?.[backend];
+		const result = await def.search(query, numResults, { key, instanceUrl, signal, backendConfig: bc });
 		// Cache the result
 		searchCache.set(cacheKey(query, backend, numResults), result.results);
 		return result.results;
