@@ -64,6 +64,7 @@ interface BackendConfig {
 
 interface SearchConfig {
 	defaultBackend?: string;
+	combine?: boolean;
 	selectionStrategy?: "sequential" | "random" | "round-robin" | "best-latency";
 	backends?: {
 		duckduckgo?: BackendConfig;
@@ -1309,6 +1310,9 @@ export default function (pi: ExtensionAPI) {
 			const numResults = Math.max(1, Math.min(params.numResults ?? 10, 20));
 			const requestedBackend = params.backend || "auto";
 			const combine = params.combine ?? false;
+			// If config has combine:true, force combine mode regardless of LLM choice
+			const forceCombine = config.combine === true;
+			const effectiveCombine = forceCombine || combine;
 
 			if (requestedBackend !== "auto") {
 				// Specific backend requested — try it directly
@@ -1320,7 +1324,7 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			// Auto mode
-			if (combine) {
+			if (effectiveCombine) {
 				// Combine mode: query all enabled backends in parallel
 				const resultsPerBackend = await Promise.all(
 					activeBackends.map(async (backend) => {
