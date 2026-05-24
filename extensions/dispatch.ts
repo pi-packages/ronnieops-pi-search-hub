@@ -4,6 +4,7 @@
 
 import type { SearchResult, SearchResultWithBackend } from "./types.js";
 import { config, roundRobinIndex, incrementRoundRobin, latencyMap } from "./config.js";
+import { scoreBackends } from "./scoring.js";
 
 // ---------------------------------------------------------------------------
 // Selection strategies
@@ -30,19 +31,8 @@ export function selectBackendsForFallback(
 			return [selected, ...backends.filter((b) => b !== selected)];
 		}
 		case "best-latency": {
-			return backends.sort((a, b) => {
-				const aSamples = latencyMap.get(a) ?? [];
-				const bSamples = latencyMap.get(b) ?? [];
-				const aAvg =
-					aSamples.length > 0
-						? aSamples.reduce((sum, s) => sum + s.ms, 0) / aSamples.length
-						: Infinity;
-				const bAvg =
-					bSamples.length > 0
-						? bSamples.reduce((sum, s) => sum + s.ms, 0) / bSamples.length
-						: Infinity;
-				return aAvg - bAvg;
-			});
+			// Use smart composite scoring (success rate + latency + quality)
+			return scoreBackends(backends).map(s => s.backend);
 		}
 		case "sequential":
 		default:
