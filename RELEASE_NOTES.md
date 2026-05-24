@@ -1,16 +1,17 @@
-# Release v2.0.0
+# Release v2.0.1 (fix broken 2.0.0 tarball)
 
-## 🚀 New Features
-- **Smart Backend Scoring**: Uses composite scoring (Success Rate, Latency, and Result Quality) for the `best-latency` strategy.
-- **Search Result Caching**: LRU cache with TTL to reduce API quota usage.
-- **Enhanced DuckDuckGo**: Leverages ddgs v9.x metasearch features (backend selection, region, and timelimit).
-- **Per-Backend Configuration**: Custom `timeout`, `maxResults`, and `headers` per search provider.
-- **Combine Mode Config**: Option to force multi-backend RRF mode directly from `search.json`.
+**v2.0.0 was deprecated.** The NPM tarball was missing module files (`types.ts`, `utils.ts`, etc.) due to restrictive `.npmignore` rules. 2.0.1 includes all files.
 
-## 🛠 Refactoring & Improvements
-- **Modular Architecture**: Major refactor from a single-file monolith to a modular structure for improved maintainability.
-- **Improved Marginalia**: Updated to the new `api2.marginalia-search.com` endpoint.
-- **Robustness**: Enhanced error sanitization and credential resolution (env/shell/literal).
+## 🚀 New Features (same as 2.0.0)
+- **Smart Backend Scoring**: Composite score (success rate + latency + quality) for `best-latency`
+- **Search Result Caching**: LRU cache with TTL, configurable via `cacheTtl`/`cacheMax`
+- **DuckDuckGo v9.x Metasearch**: Supports `ddgsBackend`, `ddgsRegion`, `ddgsTimelimit`
+- **Per-Backend Config**: Custom `timeout`, `maxResults`, `headers` per backend
+- **Combine Mode Config**: Force RRF combine via `"combine": true` in `search.json`
 
-## 🧪 Testing
-- Added comprehensive integration tests covering dispatch, config, credentials, and caching.
+## 🛠 Refactoring
+- Modular architecture (20 files from 1 monolith)
+- Marginalia endpoint updated to `api2.marginalia-search.com`
+
+## 🔧 Fixes
+- `.npmignore` now allows all extension module files
