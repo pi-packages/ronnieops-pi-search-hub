@@ -33,7 +33,7 @@ jobs:
       - name: Verify version
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "$PKG_VERSION" != "${{ inputs.version }}" ]; then
+          if [ -n "${{ inputs.version }}" ] && [ "$PKG_VERSION" != "${{ inputs.version }}" ]; then
             echo "ERROR: package.json version ($PKG_VERSION) != requested version (${{ inputs.version }})"
             exit 1
           fi
