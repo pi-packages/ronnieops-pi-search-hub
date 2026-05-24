@@ -1,0 +1,57 @@
+/**
+ * Shared types for pi-search-hub extension.
+ */
+
+export interface BackendConfig {
+	enabled?: boolean;
+	apiKey?: string;
+	/** SearXNG-specific: base URL of the self-hosted instance (e.g. http://localhost:8888) */
+	instanceUrl?: string;
+	/** Perplexity-specific: model variant (sonar, sonar-pro, sonar-deep-research, sonar-reasoning). Default: sonar */
+	model?: string;
+}
+
+export interface SearchConfig {
+	defaultBackend?: string;
+	combine?: boolean;
+	selectionStrategy?: "sequential" | "random" | "round-robin" | "best-latency";
+	backends?: {
+		duckduckgo?: BackendConfig;
+		marginalia?: BackendConfig;
+
+		serper?: BackendConfig;
+		tavily?: BackendConfig;
+		exa?: BackendConfig;
+		brave?: BackendConfig;
+		langsearch?: BackendConfig;
+		firecrawl?: BackendConfig;
+		websearchapi?: BackendConfig;
+		perplexity?: BackendConfig;
+		searxng?: BackendConfig;
+	};
+}
+
+export interface SearchResult {
+	title: string;
+	url: string;
+	snippet?: string;
+	content?: string;
+}
+
+export interface SearchResultWithBackend extends SearchResult {
+	backend?: string;
+}
+
+export interface BackendRunner {
+	needsKey: boolean;
+	needsKeyFromConfig: boolean;
+	optionalKey: boolean;
+	needsInstanceUrl: boolean;
+	label: string;
+	setupLabel: string | null;
+	search: (
+		query: string,
+		numResults: number,
+		deps: { key?: string; instanceUrl?: string; signal?: AbortSignal },
+	) => Promise<{ results: SearchResult[] }>;
+}

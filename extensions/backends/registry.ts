@@ -1,0 +1,219 @@
+/**
+ * Backend registry and dispatcher for pi-search-hub extension.
+ */
+
+import type { BackendRunner, BackendConfig, SearchResult } from "../types.js";
+import { MISSING_KEY_HELP, waitForCooldown, markCooldown } from "../utils.js";
+import { resolveBackendKey } from "../credentials.js";
+import { config } from "../config.js";
+
+import { searchDuckDuckGo } from "./duckduckgo.js";
+import { searchMarginalia } from "./marginalia.js";
+import { searchSerper } from "./serper.js";
+import { searchTavily } from "./tavily.js";
+import { searchExa } from "./exa.js";
+import { searchBrave } from "./brave.js";
+import { searchLangSearch } from "./langsearch.js";
+import { searchFirecrawl } from "./firecrawl.js";
+import { searchWebSearchAPI } from "./websearchapi.js";
+import { searchPerplexity } from "./perplexity.js";
+import { searchSearXNG } from "./searxng.js";
+import { searchJina } from "./jina.js";
+
+// ---------------------------------------------------------------------------
+// Backend Registry
+// ---------------------------------------------------------------------------
+
+export const BACKEND_DEFS: Record<string, BackendRunner> = {
+	duckduckgo: {
+		needsKey: false,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "DuckDuckGo",
+		setupLabel: null,
+		search: async (query, numResults, { signal }) => {
+			const ddg = await searchDuckDuckGo(query, numResults, signal);
+			return { results: ddg.results };
+		},
+	},
+	jina: {
+		needsKey: false,
+		needsKeyFromConfig: false,
+		optionalKey: true,
+		needsInstanceUrl: false,
+		label: "Jina AI",
+		setupLabel: "Jina AI (free tier, optional key for higher rate limits)",
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchJina(query, numResults, key, signal);
+			return { results: result.results };
+		},
+	},
+	marginalia: {
+		needsKey: false,
+		needsKeyFromConfig: false,
+		optionalKey: true,
+		needsInstanceUrl: false,
+		label: "Marginalia",
+		setupLabel: null,
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchMarginalia(query, numResults, key, signal);
+			return { results: result.results };
+		},
+	},
+	serper: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "Serper",
+		setupLabel: "Serper (Google, 2500 free/mo)",
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchSerper(query, numResults, key!, signal);
+			return { results: result.results };
+		},
+	},
+	tavily: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "Tavily",
+		setupLabel: "Tavily (AI search, 1000 free/mo)",
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchTavily(query, numResults, key!, signal);
+			return { results: result.results };
+		},
+	},
+	exa: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "Exa",
+		setupLabel: "Exa (AI-native, 1000 free/mo)",
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchExa(query, numResults, key!, signal);
+			return { results: result.results };
+		},
+	},
+	brave: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "Brave",
+		setupLabel: "Brave (2000 free/mo)",
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchBrave(query, numResults, key!, signal);
+			return { results: result.results };
+		},
+	},
+	langsearch: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "LangSearch",
+		setupLabel: "LangSearch (free, no CC)",
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchLangSearch(query, numResults, key!, signal);
+			return { results: result.results };
+		},
+	},
+	firecrawl: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "Firecrawl",
+		setupLabel: "Firecrawl (500 free credits)",
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchFirecrawl(query, numResults, key!, signal);
+			return { results: result.results };
+		},
+	},
+	websearchapi: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "WebSearchAPI",
+		setupLabel: "WebSearchAPI (2000 free credits)",
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchWebSearchAPI(query, numResults, key!, signal);
+			return { results: result.results };
+		},
+	},
+	perplexity: {
+		needsKey: true,
+		needsKeyFromConfig: true,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "Perplexity",
+		setupLabel: "Perplexity Sonar (unlimited free)",
+		search: async (query, numResults, { key, signal }) => {
+			const model = (config.backends?.perplexity as BackendConfig | undefined)?.model;
+			const result = await searchPerplexity(query, numResults, key!, signal, model);
+			return { results: result.results };
+		},
+	},
+	searxng: {
+		needsKey: false,
+		needsKeyFromConfig: false,
+		optionalKey: true,
+		needsInstanceUrl: true,
+		label: "SearXNG",
+		setupLabel: "SearXNG (self-hosted metasearch)",
+		search: async (query, numResults, { key, instanceUrl, signal }) => {
+			const result = await searchSearXNG(query, numResults, key, instanceUrl, signal);
+			return { results: result.results };
+		},
+	},
+};
+
+// ---------------------------------------------------------------------------
+// Backend dispatcher
+// ---------------------------------------------------------------------------
+
+export async function runBackend(
+	backend: string,
+	query: string,
+	numResults: number,
+	signal?: AbortSignal,
+): Promise<SearchResult[]> {
+	await waitForCooldown(backend);
+	try {
+		const def = BACKEND_DEFS[backend];
+		if (!def) throw new Error(`Unknown backend: ${backend}`);
+
+		let key: string | undefined;
+		if (def.needsKeyFromConfig) {
+			const bc = (config.backends as Record<string, BackendConfig> | undefined)?.[backend];
+			key = bc?.apiKey;
+		} else if (def.needsKey) {
+			key = resolveBackendKey(backend, config);
+			if (!key) {
+				const label = def.label;
+				throw new Error(`${label} backend not configured. ${MISSING_KEY_HELP}`);
+			}
+		} else if (def.optionalKey) {
+			// Optionally resolve key — don't throw if missing
+			key = resolveBackendKey(backend, config);
+		}
+
+		let instanceUrl: string | undefined;
+		if (def.needsInstanceUrl) {
+			const bc = (config.backends as Record<string, BackendConfig> | undefined)?.[backend];
+			instanceUrl = bc?.instanceUrl;
+			if (!instanceUrl) {
+				throw new Error(`SearXNG instance URL not configured. Set searxng.instanceUrl in search.json`);
+			}
+		}
+
+		const result = await def.search(query, numResults, { key, instanceUrl, signal });
+		return result.results;
+	} finally {
+		markCooldown(backend);
+	}
+}
