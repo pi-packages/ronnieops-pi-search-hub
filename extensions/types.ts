@@ -9,6 +9,12 @@ export interface BackendConfig {
 	instanceUrl?: string;
 	/** Perplexity-specific: model variant (sonar, sonar-pro, sonar-deep-research, sonar-reasoning). Default: sonar */
 	model?: string;
+	/** DuckDuckGo-specific: ddgs backend(s) — "auto", "duckduckgo", "bing", "brave", "google", comma-delimited */
+	ddgsBackend?: string;
+	/** DuckDuckGo-specific: region (e.g. "us-en"). Default: "us-en" */
+	ddgsRegion?: string;
+	/** DuckDuckGo-specific: timelimit — "d" (day), "w" (week), "m" (month), "y" (year) */
+	ddgsTimelimit?: string;
 }
 
 export interface SearchConfig {

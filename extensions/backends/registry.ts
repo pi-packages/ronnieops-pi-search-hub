@@ -33,7 +33,12 @@ export const BACKEND_DEFS: Record<string, BackendRunner> = {
 		label: "DuckDuckGo",
 		setupLabel: null,
 		search: async (query, numResults, { signal }) => {
-			const ddg = await searchDuckDuckGo(query, numResults, signal);
+			const bc = (config.backends as Record<string, BackendConfig> | undefined)?.duckduckgo;
+			const ddg = await searchDuckDuckGo(query, numResults, signal, {
+				backend: bc?.ddgsBackend,
+				region: bc?.ddgsRegion,
+				timelimit: bc?.ddgsTimelimit,
+			});
 			return { results: ddg.results };
 		},
 	},
