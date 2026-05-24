@@ -17,11 +17,8 @@ reddit-post.md
 *.md
 !README.md
 
-# All TypeScript except the search extension and backends
-extensions/*.ts
-!extensions/search-hub.ts
-
-# All non-search files
+# All TypeScript in extensions/ — allow all (modular structure)
+# !extensions/search-hub.ts  --  old rule for monolith, not needed anymore
 .pi/
 benchmark/
 
