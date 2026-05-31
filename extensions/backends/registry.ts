@@ -19,6 +19,10 @@ import { searchWebSearchAPI } from "./websearchapi.js";
 import { searchPerplexity } from "./perplexity.js";
 import { searchSearXNG } from "./searxng.js";
 import { searchJina } from "./jina.js";
+import { searchBraveLLM } from "./brave-llm.js";
+import { searchLinkup } from "./linkup.js";
+import { searchYoucom } from "./youcom.js";
+import { searchFastcrw } from "./fastcrw.js";
 
 // ---------------------------------------------------------------------------
 // Backend Registry
@@ -172,6 +176,57 @@ export const BACKEND_DEFS: Record<string, BackendRunner> = {
 		setupLabel: "SearXNG (self-hosted metasearch)",
 		search: async (query, numResults, { key, instanceUrl, signal }) => {
 			const result = await searchSearXNG(query, numResults, key, instanceUrl, signal);
+			return { results: result.results };
+		},
+	},
+	"brave-llm": {
+		needsKey: true,
+		needsKeyFromConfig: true,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "Brave LLM",
+		setupLabel: "Brave LLM Context (same key as Brave, pre-extracted AI chunks)",
+		search: async (query, numResults, { key, signal }) => {
+			const bc = (config.backends as Record<string, BackendConfig> | undefined)?.["brave-llm"];
+			const result = await searchBraveLLM(query, numResults, key!, signal, bc?.tokenBudget);
+			return { results: result.results };
+		},
+	},
+	linkup: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "Linkup",
+		setupLabel: "Linkup (EU/GDPR, AI-native, $20 free credit)",
+		search: async (query, numResults, { key, signal }) => {
+			const bc = (config.backends as Record<string, BackendConfig> | undefined)?.linkup;
+			const result = await searchLinkup(query, numResults, key!, signal, bc?.depth);
+			return { results: result.results };
+		},
+	},
+	youcom: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "You.com",
+		setupLabel: "You.com ($100 free credits, web+news)",
+		search: async (query, numResults, { key, signal }) => {
+			const result = await searchYoucom(query, numResults, key!, signal);
+			return { results: result.results };
+		},
+	},
+	fastcrw: {
+		needsKey: true,
+		needsKeyFromConfig: false,
+		optionalKey: false,
+		needsInstanceUrl: false,
+		label: "fastCRW",
+		setupLabel: "fastCRW (500 free/mo, self-hostable)",
+		search: async (query, numResults, { key, signal }) => {
+			const bc = (config.backends as Record<string, BackendConfig> | undefined)?.fastcrw;
+			const result = await searchFastcrw(query, numResults, key!, signal, bc?.baseUrl);
 			return { results: result.results };
 		},
 	},

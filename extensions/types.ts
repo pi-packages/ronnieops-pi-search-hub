@@ -21,6 +21,12 @@ export interface BackendConfig {
 	ddgsRegion?: string;
 	/** DuckDuckGo-specific: timelimit — "d" (day), "w" (week), "m" (month), "y" (year) */
 	ddgsTimelimit?: string;
+	/** Brave LLM Context-specific: token budget for response chunks */
+	tokenBudget?: number;
+	/** Linkup-specific: search depth — "standard" (fast) or "deep" (comprehensive). Default: standard */
+	depth?: "standard" | "deep";
+	/** fastCRW-specific: base URL override (for self-hosted). Default: https://api.fastcrw.com */
+	baseUrl?: string;
 }
 
 export interface SearchConfig {
@@ -39,11 +45,15 @@ export interface SearchConfig {
 		tavily?: BackendConfig;
 		exa?: BackendConfig;
 		brave?: BackendConfig;
+		braveLLM?: BackendConfig;
 		langsearch?: BackendConfig;
 		firecrawl?: BackendConfig;
 		websearchapi?: BackendConfig;
 		perplexity?: BackendConfig;
 		searxng?: BackendConfig;
+		linkup?: BackendConfig;
+		youcom?: BackendConfig;
+		fastcrw?: BackendConfig;
 	};
 }
 

@@ -6,6 +6,10 @@ import {
 	parseTavily,
 	parseExa,
 	parseBrave,
+	parseBraveLLM,
+	parseLinkup,
+	parseYoucom,
+	parseFastcrw,
 	parseLangSearch,
 	parseFirecrawl,
 	parsePerplexity,
@@ -228,6 +232,160 @@ describe("parseSearXNG", () => {
 		const data = { results: [{ title: "SX", url: "https://sx.com", content: "content", snippet: "snip" }] };
 		const results = parseSearXNG(data, 10);
 		expect(results[0].snippet).toBe("content");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Jina
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Brave LLM Context
+// ---------------------------------------------------------------------------
+
+describe("parseBraveLLM", () => {
+	it("parses chunks with source metadata", () => {
+		const data = {
+			chunks: [
+				{ content: "AI-generated text", relevance_score: 0.95, source: { url: "https://brave.com", title: "Brave" }, type: "text" },
+				{ content: "Code block", relevance_score: 0.8, source: { url: "https://code.com", title: "Code" }, type: "code" },
+			],
+		};
+		const results = parseBraveLLM(data, 10);
+		expect(results).toHaveLength(2);
+		expect(results[0]).toEqual({ title: "Brave", url: "https://brave.com", snippet: "AI-generated text" });
+		expect(results[1].snippet).toBe("Code block");
+	});
+
+	it("handles missing source gracefully", () => {
+		const data = { chunks: [{ content: "orphan chunk" }] };
+		const results = parseBraveLLM(data, 10);
+		expect(results).toHaveLength(1);
+		expect(results[0]).toEqual({ title: "", url: "", snippet: "orphan chunk" });
+	});
+
+	it("truncates content to 500 chars", () => {
+		const data = { chunks: [{ content: "x".repeat(600), source: { url: "https://b.com", title: "T" } }] };
+		const results = parseBraveLLM(data, 10);
+		expect(results[0].snippet.length).toBe(500);
+	});
+
+	it("handles empty chunks", () => {
+		expect(parseBraveLLM({}, 10)).toHaveLength(0);
+		expect(parseBraveLLM({ chunks: [] }, 10)).toHaveLength(0);
+	});
+
+	it("respects numResults limit", () => {
+		const data = { chunks: Array.from({ length: 10 }, (_, i) => ({ content: `c${i}`, source: { url: `https://b.com/${i}`, title: `T${i}` } })) };
+		const results = parseBraveLLM(data, 3);
+		expect(results).toHaveLength(3);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Linkup
+// ---------------------------------------------------------------------------
+
+describe("parseLinkup", () => {
+	it("parses searchResults array", () => {
+		const data = {
+			searchResults: [
+				{ url: "https://linkup.so", title: "Linkup", content: "AI search" },
+			],
+		};
+		const results = parseLinkup(data, 10);
+		expect(results).toHaveLength(1);
+		expect(results[0]).toEqual({ title: "Linkup", url: "https://linkup.so", snippet: "AI search" });
+	});
+
+	it("falls back to results field", () => {
+		const data = { results: [{ url: "https://linkup.so", title: "L", content: "c" }] };
+		const results = parseLinkup(data, 10);
+		expect(results).toHaveLength(1);
+	});
+
+	it("falls back to data field", () => {
+		const data = { data: [{ url: "https://linkup.so", title: "L", content: "c" }] };
+		const results = parseLinkup(data, 10);
+		expect(results).toHaveLength(1);
+	});
+
+	it("prefers content over snippet", () => {
+		const data = { searchResults: [{ url: "https://l.com", title: "L", content: "content", snippet: "snip" }] };
+		const results = parseLinkup(data, 10);
+		expect(results[0].snippet).toBe("content");
+	});
+
+	it("handles empty response", () => {
+		expect(parseLinkup({}, 10)).toHaveLength(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// You.com
+// ---------------------------------------------------------------------------
+
+describe("parseYoucom", () => {
+	it("parses hits array", () => {
+		const data = {
+			hits: [
+				{ url: "https://you.com", title: "You", description: "Search engine" },
+			],
+		};
+		const results = parseYoucom(data, 10);
+		expect(results).toHaveLength(1);
+		expect(results[0]).toEqual({ title: "You", url: "https://you.com", snippet: "Search engine" });
+	});
+
+	it("joins snippets array when no description", () => {
+		const data = { hits: [{ url: "https://you.com", title: "Y", snippets: ["part1", "part2"] }] };
+		const results = parseYoucom(data, 10);
+		expect(results[0].snippet).toBe("part1 part2");
+	});
+
+	it("falls back to results field", () => {
+		const data = { results: [{ url: "https://you.com", title: "Y", description: "d" }] };
+		const results = parseYoucom(data, 10);
+		expect(results).toHaveLength(1);
+	});
+
+	it("handles empty response", () => {
+		expect(parseYoucom({}, 10)).toHaveLength(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// fastCRW
+// ---------------------------------------------------------------------------
+
+describe("parseFastcrw", () => {
+	it("parses data array", () => {
+		const data = {
+			success: true,
+			data: [
+				{ url: "https://fastcrw.com", title: "fastCRW", description: "Fast scrape" },
+			],
+		};
+		const results = parseFastcrw(data, 10);
+		expect(results).toHaveLength(1);
+		expect(results[0]).toEqual({ title: "fastCRW", url: "https://fastcrw.com", snippet: "Fast scrape" });
+	});
+
+	it("handles missing description", () => {
+		const data = { data: [{ url: "https://f.com", title: "F" }] };
+		const results = parseFastcrw(data, 10);
+		expect(results[0].snippet).toBe("");
+	});
+
+	it("handles non-array data", () => {
+		expect(parseFastcrw({}, 10)).toHaveLength(0);
+		expect(parseFastcrw({ data: "not array" }, 10)).toHaveLength(0);
+	});
+
+	it("respects numResults limit", () => {
+		const data = { data: Array.from({ length: 10 }, (_, i) => ({ url: `https://f.com/${i}`, title: `T${i}` })) };
+		const results = parseFastcrw(data, 3);
+		expect(results).toHaveLength(3);
 	});
 });
 

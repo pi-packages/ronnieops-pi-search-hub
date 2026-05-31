@@ -230,6 +230,84 @@ export function parseSearXNG(
 }
 
 // ---------------------------------------------------------------------------
+// Brave LLM Context
+// Response: { chunks: [{ content, relevance_score, source: { url, title }, type }] }
+// ---------------------------------------------------------------------------
+
+export function parseBraveLLM(
+	data: Record<string, unknown>,
+	numResults: number,
+): ParsedResult[] {
+	const rawChunks = data.chunks;
+	const chunks = Array.isArray(rawChunks) ? rawChunks : [];
+	return chunks.slice(0, numResults).map((c) => {
+		const source = (c.source as Record<string, unknown>) || {};
+		return {
+			title: (source.title as string) || "",
+			url: (source.url as string) || "",
+			snippet: ((c.content as string) || "").slice(0, 500),
+		};
+	});
+}
+
+// ---------------------------------------------------------------------------
+// Linkup
+// Response: { searchResults: [{ url, title, content }] } or nested
+// ---------------------------------------------------------------------------
+
+export function parseLinkup(
+	data: Record<string, unknown>,
+	numResults: number,
+): ParsedResult[] {
+	const rawResults = data.searchResults || data.results || data.data;
+	const results = Array.isArray(rawResults) ? rawResults : [];
+	return results.slice(0, numResults).map((r) => ({
+		title: (r.title as string) || "",
+		url: (r.url as string) || "",
+		snippet: ((r.content as string) || (r.snippet as string) || "").slice(0, 500),
+	}));
+}
+
+// ---------------------------------------------------------------------------
+// You.com
+// Response: { hits: [{ url, title, description, snippets }] }
+// ---------------------------------------------------------------------------
+
+export function parseYoucom(
+	data: Record<string, unknown>,
+	numResults: number,
+): ParsedResult[] {
+	const rawHits = data.hits || data.results;
+	const hits = Array.isArray(rawHits) ? rawHits : [];
+	return hits.slice(0, numResults).map((r) => {
+		const snippets = Array.isArray(r.snippets) ? (r.snippets as string[]).join(" ") : "";
+		return {
+			title: (r.title as string) || "",
+			url: (r.url as string) || "",
+			snippet: ((r.description as string) || snippets || "").slice(0, 500),
+		};
+	});
+}
+
+// ---------------------------------------------------------------------------
+// fastCRW (Firecrawl-compatible)
+// Response: { success: true, data: [{ url, title, description }] }
+// ---------------------------------------------------------------------------
+
+export function parseFastcrw(
+	data: Record<string, unknown>,
+	numResults: number,
+): ParsedResult[] {
+	const rawData = data.data;
+	const results = Array.isArray(rawData) ? rawData : [];
+	return results.slice(0, numResults).map((r) => ({
+		title: (r.title as string) || "",
+		url: (r.url as string) || "",
+		snippet: ((r.description as string) || (r.snippet as string) || "").slice(0, 500),
+	}));
+}
+
+// ---------------------------------------------------------------------------
 // Jina AI (s.jina.ai)
 // Response: { data: [{ title, url, content, description }] }
 // ---------------------------------------------------------------------------
