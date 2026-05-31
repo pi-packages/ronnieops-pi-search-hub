@@ -14,10 +14,13 @@ export async function searchMarginalia(
 ): Promise<{ results: SearchResult[] }> {
 	const key = apiKey || "public";
 	const response = await fetch(
-		`https://api2.marginalia-search.com/${encodeURIComponent(key)}/search/${encodeURIComponent(query)}?index=0&count=${Math.min(numResults, 50)}`,
+		`https://api2.marginalia-search.com/search?${new URLSearchParams({ query, count: String(Math.min(numResults, 100)) })}`,
 		{
 			signal: timeoutSignal(signal),
-			headers: { "Accept": "application/json" },
+			headers: {
+				"Accept": "application/json",
+				"API-Key": key,
+			},
 		},
 	);
 
