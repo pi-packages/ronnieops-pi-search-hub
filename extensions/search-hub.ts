@@ -396,7 +396,56 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			const backend = backendKey[option];
+			const def = BACKEND_DEFS[backend];
 			const label = option;
+
+			// Free backends (needsKey: false) can be enabled without API key
+			if (!def.needsKey) {
+				const enable = await ctx.ui.select(
+					`${label} is free and needs no API key. Enable it?`,
+					["Yes, enable it", "Cancel"],
+				);
+				if (enable !== "Yes, enable it") {
+					ctx.ui.notify("Setup cancelled.", "info");
+					return;
+				}
+
+				const configDir = join(getAgentDir(), "extensions");
+				const configPath = join(configDir, "search.json");
+				mkdirSync(configDir, { recursive: true });
+
+				let existing: SearchConfig = {};
+				if (existsSync(configPath)) {
+					try {
+						existing = JSON.parse(readFileSync(configPath, "utf-8"));
+					} catch {
+						// ignore
+					}
+				}
+
+				// Optionally ask for API key if optional
+				let apiKey: string | undefined;
+				if (def.optionalKey) {
+					const optKey = await ctx.ui.input("Optional API key (press Enter to skip):", {
+						placeholder: "sk-... (optional)",
+					});
+					if (optKey && optKey.trim()) {
+						apiKey = optKey.trim();
+					}
+				}
+
+				const updated: SearchConfig = {
+					...existing,
+					backends: {
+						...existing.backends,
+						[backend]: { enabled: true, ...(apiKey ? { apiKey } : {}) },
+					},
+				};
+
+				writeFileSync(configPath, JSON.stringify(updated, null, 2) + "\n", { mode: 0o600 });
+				ctx.ui.notify(`${label} enabled. Run /reload to activate.`, "success");
+				return;
+			}
 
 			const key = await ctx.ui.input(`Enter your ${label} API key:`, {
 				placeholder: "sk-...",
