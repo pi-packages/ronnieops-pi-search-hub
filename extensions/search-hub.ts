@@ -534,7 +534,9 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		clearCooldowns();
 		refreshConfig(ctx.cwd);
-		const status = getActiveBackends().join(", ");
-		ctx.ui.setStatus("search", `search: ${status}`);
+		if (config.showStatus !== false) {
+			const status = getActiveBackends().join(", ");
+			ctx.ui.setStatus("search", `search: ${status}`);
+		}
 	});
 }

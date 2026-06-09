@@ -39,6 +39,8 @@ export interface SearchConfig {
 	selectionStrategy?: "sequential" | "random" | "round-robin" | "best-latency";
 	/** Reader backend for web_read. "jina" (default, free) or "sofya" (250+ site parsers, needs key). */
 	reader?: "jina" | "sofya";
+	/** Show status line with enabled backends. Default: true. Set to false to hide. */
+	showStatus?: boolean;
 	/** Cache TTL in milliseconds. Default: 300000 (5 min). Set to 0 to disable. */
 	cacheTtl?: number;
 	/** Max cached queries. Default: 100. */
