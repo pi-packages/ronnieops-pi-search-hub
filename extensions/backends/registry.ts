@@ -65,7 +65,7 @@ export const BACKEND_DEFS: Record<string, BackendRunner> = {
 		optionalKey: true,
 		needsInstanceUrl: false,
 		label: "Marginalia",
-		setupLabel: null,
+		setupLabel: "Marginalia (free, public key optional)",
 		search: async (query, numResults, { key, signal }) => {
 			const result = await searchMarginalia(query, numResults, key, signal);
 			return { results: result.results };
