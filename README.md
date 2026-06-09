@@ -1,6 +1,6 @@
 # pi-search-hub
 
-Unified web search + content extraction extension for [pi](https://pi.dev) with **16 backend providers** (all working). One `web_search` tool, one `web_read` tool, auto-fallback, RRF-ranked combine mode, and credential resolution via env/shell/literal.
+Unified web search + content extraction extension for [pi](https://pi.dev) with **17 backend providers** (all working). One `web_search` tool, one `web_read` tool (Jina or Sofya reader), auto-fallback, RRF-ranked combine mode, and credential resolution via env/shell/literal.
 
 ## Installation
 
