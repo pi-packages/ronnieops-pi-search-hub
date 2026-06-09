@@ -17,7 +17,7 @@ export const MISSING_KEY_HELP =
 	"config reference (\"apiKey\": \"SOME_ENV_VAR\"), " +
 	"shell command (\"apiKey\": \"!pass show api/backend\"), " +
 	"or a literal key in ~/.pi/agent/extensions/search.json. " +
-	"DuckDuckGo & Marginalia need no key.";
+	"DuckDuckGo needs no key. Marginalia uses a shared public key (optional)."
 
 // ---------------------------------------------------------------------------
 // Agent directory

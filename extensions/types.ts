@@ -54,6 +54,8 @@ export interface SearchConfig {
 		exa?: BackendConfig;
 		brave?: BackendConfig;
 		braveLLM?: BackendConfig;
+		"brave-llm"?: BackendConfig;
+		"brave-llm"?: BackendConfig;
 		langsearch?: BackendConfig;
 		firecrawl?: BackendConfig;
 		websearchapi?: BackendConfig;

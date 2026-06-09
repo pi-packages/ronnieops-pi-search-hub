@@ -1,5 +1,6 @@
 /**
- * Jina AI backend — search via s.jina.ai, needs API key (free).
+ * Jina AI backend — search via s.jina.ai (needs free API key).
+ * Note: web_read uses Jina Reader (r.jina.ai) which is free and needs no key.
  */
 
 import { timeoutSignal, sanitizeError } from "../utils.js";

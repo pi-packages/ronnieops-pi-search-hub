@@ -248,7 +248,8 @@ export default function (pi: ExtensionAPI) {
 		label: "Read Web Page",
 		description:
 			"Fetch a URL as markdown. Use objective for a concrete question, keywords for long pages, " +
-			"rush for speed, smart for better narrowing.",
+			"rush for speed, smart for better narrowing. Use reader param to switch between " +
+			"Jina (default, free) and Sofya (250+ site parsers, needs API key).",
 		promptSnippet: "Read content from a web page (supports markdown extraction)",
 		promptGuidelines: [
 			"Use web_read when you need to read the content of a specific URL",
@@ -423,14 +424,33 @@ export default function (pi: ExtensionAPI) {
 					}
 				}
 
-				// Optionally ask for API key if optional
-				let apiKey: string | undefined;
-				if (def.optionalKey) {
+				// Handle backends needing instance URL (e.g. SearXNG)
+				let backendConfig: BackendConfig = { enabled: true };
+				if (def.needsInstanceUrl) {
+					const instanceUrl = await ctx.ui.input("Enter your instance URL (e.g. http://localhost:8888):", {
+						placeholder: "http://localhost:8888",
+						validate: (v: string) =>
+							v.trim().length > 0 ? undefined : "URL cannot be empty",
+					});
+					if (!instanceUrl) {
+						ctx.ui.notify("Setup cancelled.", "info");
+						return;
+					}
+					backendConfig.instanceUrl = instanceUrl.trim();
+					// Optionally ask for API key (some instances require auth)
+					const optKey = await ctx.ui.input("Optional API key (press Enter to skip):", {
+						placeholder: "sk-... (optional)",
+				});
+					if (optKey && optKey.trim()) {
+						backendConfig.apiKey = optKey.trim();
+					}
+				} else if (def.optionalKey) {
+					// Optionally ask for API key if optional
 					const optKey = await ctx.ui.input("Optional API key (press Enter to skip):", {
 						placeholder: "sk-... (optional)",
 					});
 					if (optKey && optKey.trim()) {
-						apiKey = optKey.trim();
+						backendConfig.apiKey = optKey.trim();
 					}
 				}
 
@@ -438,7 +458,7 @@ export default function (pi: ExtensionAPI) {
 					...existing,
 					backends: {
 						...existing.backends,
-						[backend]: { enabled: true, ...(apiKey ? { apiKey } : {}) },
+						[backend]: backendConfig,
 					},
 				};
 

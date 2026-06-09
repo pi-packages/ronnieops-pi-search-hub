@@ -86,6 +86,7 @@ The `web_read` tool supports:
 | 14  | **Linkup**            | €20/mo free credit, EU/GDPR   |   Yes    | [linkup.so](https://www.linkup.so)                                |
 | 15  | **You.com**           | $100 free credits             |   Yes    | [api.you.com](https://api.you.com/docs)                            |
 | 16  | **fastCRW**           | 500 free credits/mo           |   Yes    | [github.com/Fast-API-Team/fastcrw](https://github.com/Fast-API-Team/fastcrw) |
+| 17  | **Sofya**             | Search + fetch (250+ parsers) |   Yes    | [sofya.co](https://sofya.co)                                       |
 
 > *Brave LLM Context uses same API key as Brave Search.
 >
@@ -100,6 +101,8 @@ The `web_read` tool supports:
 > **Firecrawl** uses `api.firecrawl.dev/v2/search` with a `data.web[]` response shape. The v1 endpoint is deprecated.
 >
 > **Exa** (March 2026) includes content for the first 10 results per request at no extra cost. Content extraction is enabled by default.
+>
+> **Sofya** provides both search and fetch (web_read reader) from a single API key. The fetch reader uses 250+ site-specific parsers for clean markdown extraction.
 
 ## Configuration
 
@@ -113,8 +116,9 @@ Configure backends globally (all projects) or per-project:
   "defaultBackend": "auto",
   "backends": {
     "duckduckgo": { "enabled": true },
-    "jina": { "enabled": true, "apiKey": "JINA_API_KEY" },
     "marginalia": { "enabled": true },
+    "jina": { "enabled": true, "apiKey": "JINA_API_KEY" },
+    "brave-llm": { "enabled": true, "apiKey": "BRAVE_API_KEY" },
     "serper": { "enabled": true, "apiKey": "SERPER_API_KEY" },
     "tavily": { "enabled": true, "apiKey": "TAVILY_API_KEY" },
     "brave": { "enabled": true, "apiKey": "BRAVE_API_KEY" },
@@ -127,7 +131,11 @@ Configure backends globally (all projects) or per-project:
       "apiKey": "PERPLEXITY_API_KEY",
       "model": "sonar"
     },
-    "searxng": { "enabled": true, "instanceUrl": "http://localhost:8888" }
+    "searxng": { "enabled": true, "instanceUrl": "http://localhost:8888" },
+    "linkup": { "enabled": true, "apiKey": "LINKUP_API_KEY" },
+    "youcom": { "enabled": true, "apiKey": "YOUCOM_API_KEY" },
+    "fastcrw": { "enabled": true, "apiKey": "FASTCRW_API_KEY" },
+    "sofya": { "enabled": true, "apiKey": "SOFYA_API_KEY" }
   }
 }
 ```
@@ -246,7 +254,7 @@ curl "http://localhost:8888/search?q=test&format=json&count=3"
 
 ## Adding a new backend
 
-Backends are registered via the `BACKEND_DEFS` registry in `extensions/search-hub.ts`. Define a `search` function and add one entry to the registry:
+Backends are registered via the `BACKEND_DEFS` registry in `extensions/backends/registry.ts`. Define a `search` function and add one entry to the registry:
 
 ```typescript
 const BACKEND_DEFS: Record<string, BackendRunner> = {
