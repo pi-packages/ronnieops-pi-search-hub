@@ -6,6 +6,35 @@ import type { SearchResult, SearchResultWithBackend } from "./types.js";
 import type { BackendRunner } from "./types.js";
 
 // ---------------------------------------------------------------------------
+// Compact formatting
+// ---------------------------------------------------------------------------
+
+export function formatResultsCompact(
+	results: SearchResult[],
+): string {
+	if (results.length === 0) return "No results.";
+	const lines = results.map((r, i) => {
+		const title = (r.title || "Untitled").slice(0, 60);
+		const url = r.url.length > 50 ? r.url.slice(0, 47) + "..." : r.url;
+		return `${i + 1}. ${title} — ${url}`;
+	});
+	return lines.join("\n");
+}
+
+export function formatCombinedResultsCompact(
+	results: SearchResultWithBackend[],
+): string {
+	if (results.length === 0) return "No results.";
+	const lines = results.map((r, i) => {
+		const title = (r.title || "Untitled").slice(0, 60);
+		const url = r.url.length > 50 ? r.url.slice(0, 47) + "..." : r.url;
+		const src = r.backend ? ` [${r.backend}]` : "";
+		return `${i + 1}. ${title}${src} — ${url}`;
+	});
+	return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // Single-backend result formatting
 // ---------------------------------------------------------------------------
 

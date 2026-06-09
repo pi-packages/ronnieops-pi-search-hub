@@ -50,7 +50,7 @@ import { fetchSofya } from "./backends/sofya.js";
 import { config, refreshConfig, getActiveBackends, recordLatency, latencyMap } from "./config.js";
 import { BACKEND_DEFS, runBackend } from "./backends/registry.js";
 import { selectBackendsForFallback, reciprocalRankFusion } from "./dispatch.js";
-import { formatResults, formatCombinedResults } from "./formatters.js";
+import { formatResults, formatCombinedResults, formatResultsCompact, formatCombinedResultsCompact } from "./formatters.js";
 
 // ---------------------------------------------------------------------------
 // Extension
@@ -106,12 +106,21 @@ export default function (pi: ExtensionAPI) {
 					default: false,
 				}),
 			),
+			compact: Type.Optional(
+				Type.Boolean({
+					description:
+						"When true, returns compact single-line results (title + URL). " +
+						"Default is false (verbose markdown with snippets).",
+					default: false,
+				}),
+			),
 		}),
 		async execute(_toolCallId, params, signal, _onUpdate, ctx) {
 			refreshConfig(ctx.cwd);
 			const numResults = Math.max(1, Math.min(params.numResults ?? 10, 20));
 			const requestedBackend = params.backend || "auto";
 			const combine = params.combine ?? false;
+			const compact = params.compact ?? false;
 			// If config has combine:true, force combine mode regardless of LLM choice
 			const forceCombine = config.combine === true;
 			const effectiveCombine = forceCombine || combine;
@@ -120,7 +129,7 @@ export default function (pi: ExtensionAPI) {
 				// Specific backend requested — try it directly
 				const results = await runBackend(requestedBackend, params.query, numResults, signal);
 				return {
-					content: [{ type: "text", text: formatResults(params.query, requestedBackend, results) }],
+					content: [{ type: "text", text: compact ? formatResultsCompact(results) : formatResults(params.query, requestedBackend, results) }],
 					details: { backend: requestedBackend, resultCount: results.length },
 				};
 			}
@@ -182,7 +191,9 @@ export default function (pi: ExtensionAPI) {
 					content: [
 						{
 							type: "text",
-							text: formatCombinedResults(params.query, combined, backendStats, BACKEND_DEFS),
+							text: compact
+								? formatCombinedResultsCompact(combined)
+							: formatCombinedResults(params.query, combined, backendStats, BACKEND_DEFS),
 						},
 					],
 					details: {
@@ -208,8 +219,8 @@ export default function (pi: ExtensionAPI) {
 								{
 									type: "text",
 									text: errors.length > 0
-										? `${errors.join("; ")}\n\n${formatResults(params.query, backend, results)}`
-										: formatResults(params.query, backend, results),
+										? `${errors.join("; ")}\n\n${compact ? formatResultsCompact(results) : formatResults(params.query, backend, results)}`
+										: (compact ? formatResultsCompact(results) : formatResults(params.query, backend, results)),
 								},
 							],
 							details: {
