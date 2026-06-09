@@ -224,6 +224,70 @@ describe("loadConfig", () => {
 });
 
 // ---------------------------------------------------------------------------
+// fetchSofya tests
+// ---------------------------------------------------------------------------
+
+import { fetchSofya } from "../extensions/backends/sofya.js";
+
+describe("fetchSofya", () => {
+	let fetchSpy: ReturnType<typeof vi.spyOn>;
+
+	beforeEach(() => {
+		fetchSpy = vi.spyOn(global, "fetch");
+	});
+
+	afterEach(() => {
+		fetchSpy.mockRestore();
+	});
+
+	it("throws on HTTP error response", async () => {
+		fetchSpy.mockResolvedValueOnce({
+			ok: false,
+			status: 401,
+			text: async () => "Unauthorized",
+		} as Response);
+
+		await expect(fetchSofya("https://example.com", "invalid-key")).rejects.toThrow("Sofya fetch");
+	});
+
+	it("throws when success is false in response", async () => {
+		fetchSpy.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ results: [{ success: false, error: "Rate limit exceeded" }] }),
+		} as Response);
+
+		await expect(fetchSofya("https://example.com", "valid-key")).rejects.toThrow("Sofya fetch failed");
+	});
+
+	it("throws when no results returned", async () => {
+		fetchSpy.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ results: [] }),
+		} as Response);
+
+		await expect(fetchSofya("https://example.com", "valid-key")).rejects.toThrow("no content returned");
+	});
+
+	it("returns content on success", async () => {
+		fetchSpy.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({
+				results: [{
+					success: true,
+					url: "https://example.com",
+					title: "Example",
+					content: "Page content here",
+				}],
+			}),
+		} as Response);
+
+		const result = await fetchSofya("https://example.com", "valid-key");
+		expect(result.content).toBe("Page content here");
+		expect(result.title).toBe("Example");
+	});
+});
+
+// ---------------------------------------------------------------------------
 // SearchCache tests
 // ---------------------------------------------------------------------------
 
