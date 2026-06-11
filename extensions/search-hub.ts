@@ -471,9 +471,6 @@ export default function (pi: ExtensionAPI) {
 				// Auto-enable free backends directly
 				const configDir = join(getAgentDir(), "extensions");
 				const configPath = join(configDir, "search.json");
-
-				const configDir = join(getAgentDir(), "extensions");
-				const configPath = join(configDir, "search.json");
 				mkdirSync(configDir, { recursive: true });
 
 				let existing: SearchConfig = {};
