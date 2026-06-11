@@ -1,3 +1,43 @@
+# Release v2.3.1 (Bug fix release)
+
+## 🐛 Fixes
+- Fixed missing closing brace in `exa_mcp` backend that caused pi to fail loading.
+- Fixed orphaned `return` block in `search-hub.ts` that caused parse errors.
+
+## 📊 Stats
+- 18 backends total
+- 228 tests passing
+
+---
+
+# Release v2.3.0 (Major feature release)
+
+## 🚀 New Features
+- **Exa MCP** — Zero-config backend using MCP endpoint (no API key needed).
+- **SSRF guard** — `isPrivateHost()`, `validateUrl()`, `assertSafeUrl()` in utils.ts.
+- **Large-page spillover** — `spillover.ts` handles oversized responses.
+- **Statusline activity** — Search tools show activity in status line.
+- **Tool selection persistence** — `tool-persistence.ts` remembers last used tool.
+- **Sibling URL probing** — `sibling-probe.ts` tries .md, README.md variants.
+- **GFM support** — Tables, task lists, strikethrough, code blocks in `gfm-support.ts`.
+- **Content negotiation pipeline** — Markdown detection in `content-negotiation.ts`.
+- **Cache system with TTL** — `cache-system.ts` with configurable TTL.
+- **TLS fingerprinting** — `tls-fingerprint.ts` for Cloudflare bypass.
+- **Exa usage tracking** — Monthly quota tracking (1000/mo, warns at 800).
+
+## ⚙️ Setup Menu Enhancements
+- Added "⚡ Enable all free backends" quick option.
+- Added "⚙️ Global settings" to configure: compact, showStatus, combine, cacheTtl, cacheMax, reader, selectionStrategy.
+- Show rate limits in backend list.
+- Free backends auto-enable without prompting.
+
+## 📊 Stats
+- 18 backends total (added Exa MCP)
+- 228 tests passing (was 198)
+- 26 new files (10 new modules + test files)
+
+---
+
 # Release v2.2.0 (Sofya backend + pluggable web_read reader)
 
 ## 🚀 New
