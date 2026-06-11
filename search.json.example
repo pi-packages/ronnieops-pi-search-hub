@@ -2,6 +2,7 @@
   "defaultBackend": "auto",
   "reader": "jina",
   "showStatus": true,
+  "compact": false,
   "backends": {
     "duckduckgo": { "enabled": true },
     "sofya": { "enabled": true, "apiKey": "SOFYA_API_KEY", "searchDepth": "basic" },

@@ -45,6 +45,8 @@ export interface SearchConfig {
 	cacheTtl?: number;
 	/** Max cached queries. Default: 100. */
 	cacheMax?: number;
+	/** Default compact output. When true, returns single-line results (title + URL). Default: false. */
+	compact?: boolean;
 	backends?: {
 		duckduckgo?: BackendConfig;
 		marginalia?: BackendConfig;

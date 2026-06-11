@@ -112,7 +112,7 @@ export default function (pi: ExtensionAPI) {
 				Type.Boolean({
 					description:
 						"When true, returns compact single-line results (title + URL). " +
-						"Default is false (verbose markdown with snippets).",
+						"Can also be set as default in search.json config. Default: false (verbose).",
 					default: false,
 				}),
 			),
@@ -122,7 +122,7 @@ export default function (pi: ExtensionAPI) {
 			const numResults = Math.max(1, Math.min(params.numResults ?? 10, 20));
 			const requestedBackend = params.backend || "auto";
 			const combine = params.combine ?? false;
-			const compact = params.compact ?? false;
+			const compact = params.compact ?? config.compact ?? false;
 			// If config has combine:true, force combine mode regardless of LLM choice
 			const forceCombine = config.combine === true;
 			const effectiveCombine = forceCombine || combine;
