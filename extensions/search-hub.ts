@@ -447,12 +447,6 @@ export default function (pi: ExtensionAPI) {
 				})
 			);
 
-			const option = await ctx.ui.select("Which backend do you want to configure?", [
-				...backends,
-				"⚙️ Global settings",
-				"✅ Done — save and exit",
-			]);
-
 			if (!option || option.startsWith("✅ Done")) {
 				ctx.ui.notify("Search setup complete.", "info");
 				return;
@@ -468,7 +462,7 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 
-			const backend = backendKey[option];
+			const backend = backendKey[option!];
 			const def = BACKEND_DEFS[backend];
 			const label = option;
 
