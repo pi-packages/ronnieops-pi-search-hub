@@ -424,11 +424,17 @@ export default function (pi: ExtensionAPI) {
 
 			const option = await ctx.ui.select("Which backend do you want to configure?", [
 				...backends,
+				"⚙️ Global settings",
 				"✅ Done — save and exit",
 			]);
 
 			if (!option || option.startsWith("✅ Done")) {
 				ctx.ui.notify("Search setup complete.", "info");
+				return;
+			}
+
+			if (option === "⚙️ Global settings") {
+				await configureGlobalSettings(ctx);
 				return;
 			}
 
@@ -568,6 +574,111 @@ export default function (pi: ExtensionAPI) {
 			);
 		},
 	});
+
+	// -------------------------------------------------------------------------
+	// Global settings configuration
+	// -------------------------------------------------------------------------
+
+	async function configureGlobalSettings(ctx: ExtensionContext) {
+		const configDir = join(getAgentDir(), "extensions");
+		const configPath = join(configDir, "search.json");
+		mkdirSync(configDir, { recursive: true });
+
+		let existing: SearchConfig = {};
+		if (existsSync(configPath)) {
+			try {
+				existing = JSON.parse(readFileSync(configPath, "utf-8"));
+			} catch {
+				// ignore
+			}
+		}
+
+		const settings = [
+			["compact", "Compact output", existing.compact ? "On" : "Off"],
+			["showStatus", "Show status line", existing.showStatus !== false ? "On" : "Off"],
+			["combine", "Combine mode (parallel search)", existing.combine ? "On" : "Off"],
+			["cacheTtl", "Cache TTL (ms)", String(existing.cacheTtl ?? 300000)],
+			["cacheMax", "Max cached queries", String(existing.cacheMax ?? 100)],
+			["reader", "Web reader", existing.reader ?? "jina"],
+			["selectionStrategy", "Selection strategy", existing.selectionStrategy ?? "sequential"],
+		];
+
+		const labels = settings.map(([key, label, current]) => `${label}: ${current}`);
+		labels.push("✅ Done — save and exit");
+
+		const selected = await ctx.ui.select("Configure global settings:", labels);
+		if (!selected || selected === "✅ Done — save and exit") {
+			ctx.ui.notify("Global settings saved.", "info");
+			return;
+		}
+
+		// Find which setting was selected
+		const idx = labels.indexOf(selected);
+		if (idx < 0 || idx >= settings.length) {
+			ctx.ui.notify("Setup cancelled.", "info");
+			return;
+		}
+
+		const [key, label] = settings[idx];
+		let value: unknown;
+
+		switch (key) {
+			case "compact":
+			case "showStatus":
+			case "combine": {
+				const toggle = await ctx.ui.select(`${label} — current: ${selected.split(": ")[1]}`, ["On", "Off", "Cancel"]);
+				if (toggle === "Cancel" || !toggle) {
+					ctx.ui.notify("Setup cancelled.", "info");
+					return;
+				}
+				value = toggle === "On";
+				break;
+			}
+			case "cacheTtl":
+			case "cacheMax": {
+				const input = await ctx.ui.input(`${label} — current: ${selected.split(": ")[1]}`, {
+					placeholder: selected.split(": ")[1],
+					validate: (v) => /\d+/.test(v) ? undefined : "Must be a number",
+				});
+				if (!input) {
+					ctx.ui.notify("Setup cancelled.", "info");
+					return;
+				}
+				value = parseInt(input, 10);
+				break;
+			}
+			case "reader": {
+				const choice = await ctx.ui.select(`${label} — current: ${selected.split(": ")[1]}`, ["jina (free)", "sofya (needs key)", "Cancel"]);
+				if (choice === "Cancel" || !choice) {
+					ctx.ui.notify("Setup cancelled.", "info");
+					return;
+				}
+				value = choice.startsWith("jina") ? "jina" : "sofya";
+				break;
+			}
+			case "selectionStrategy": {
+				const choice = await ctx.ui.select(`${label} — current: ${selected.split(": ")[1]}`, [
+					"sequential", "random", "round-robin", "best-latency", "Cancel",
+				]);
+				if (choice === "Cancel" || !choice) {
+					ctx.ui.notify("Setup cancelled.", "info");
+					return;
+				}
+				value = choice;
+				break;
+			}
+			default:
+				ctx.ui.notify("Unknown setting.", "error");
+				return;
+		}
+
+		const updated: SearchConfig = { ...existing, [key]: value };
+		writeFileSync(configPath, JSON.stringify(updated, null, 2) + "\n", { mode: 0o600 });
+		ctx.ui.notify(`${label} set. Run /reload to apply.`, "success");
+
+		// Allow configuring another setting
+		await configureGlobalSettings(ctx);
+	}
 
 	pi.registerCommand("search-status", {
 		description: "Show which search backends are configured and active",
