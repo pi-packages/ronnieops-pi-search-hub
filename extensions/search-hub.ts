@@ -412,14 +412,39 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 
-			const backends = Object.values(BACKEND_DEFS)
-				.filter(d => d.setupLabel !== null)
-				.map(d => d.setupLabel!);
+			// Build backend list with rate limits for free backends
+			const backendList = Object.entries(BACKEND_DEFS)
+				.filter(([_, d]) => d.setupLabel !== null)
+				.map(([k, d]) => {
+					let label = d.setupLabel!;
+					// Add rate limit hints for free backends
+					if (k === "duckduckgo") label += " (rate-limited)";
+					if (k === "marginalia") label += " (rate-limited)";
+					if (k === "jina") label += " (1000/mo free)";
+					if (k === "exa_mcp") label += " (rate-limited)";
+					if (k === "searxng") label += " (self-hosted)";
+				return label;
+			});
+
+			const option = await ctx.ui.select("Which backend do you want to configure?", [
+				...backendList,
+				"⚡ Enable all free backends",
+				"⚙️ Global settings",
+				"✅ Done — save and exit",
+			]);
 
 			const backendKey: Record<string, string> = Object.fromEntries(
 				Object.entries(BACKEND_DEFS)
 					.filter(([_, d]) => d.setupLabel !== null)
-					.map(([k, d]) => [d.setupLabel!, k])
+					.map(([k, d]) => {
+						let label = d.setupLabel!;
+						if (k === "duckduckgo") label += " (rate-limited)";
+						if (k === "marginalia") label += " (rate-limited)";
+						if (k === "jina") label += " (1000/mo free)";
+						if (k === "exa_mcp") label += " (rate-limited)";
+						if (k === "searxng") label += " (self-hosted)";
+					return [label, k];
+				})
 			);
 
 			const option = await ctx.ui.select("Which backend do you want to configure?", [
@@ -438,20 +463,20 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 
+			if (option === "⚡ Enable all free backends") {
+				await enableAllFreeBackends(ctx);
+				return;
+			}
+
 			const backend = backendKey[option];
 			const def = BACKEND_DEFS[backend];
 			const label = option;
 
 			// Free backends (needsKey: false) can be enabled without API key
 			if (!def.needsKey) {
-				const enable = await ctx.ui.select(
-					`${label} is free and needs no API key. Enable it?`,
-					["Yes, enable it", "Cancel"],
-				);
-				if (enable !== "Yes, enable it") {
-					ctx.ui.notify("Setup cancelled.", "info");
-					return;
-				}
+				// Auto-enable free backends directly
+				const configDir = join(getAgentDir(), "extensions");
+				const configPath = join(configDir, "search.json");
 
 				const configDir = join(getAgentDir(), "extensions");
 				const configPath = join(configDir, "search.json");
@@ -574,6 +599,50 @@ export default function (pi: ExtensionAPI) {
 			);
 		},
 	});
+
+	// -------------------------------------------------------------------------
+	// Enable all free backends
+	// -------------------------------------------------------------------------
+
+	async function enableAllFreeBackends(ctx: ExtensionContext) {
+		const configDir = join(getAgentDir(), "extensions");
+		const configPath = join(configDir, "search.json");
+		mkdirSync(configDir, { recursive: true });
+
+		let existing: SearchConfig = {};
+		if (existsSync(configPath)) {
+			try {
+				existing = JSON.parse(readFileSync(configPath, "utf-8"));
+			} catch {
+				// ignore
+			}
+		}
+
+		// List of free backends to enable
+		const freeBackends = [
+			"duckduckgo",
+			"jina",
+			"marginalia",
+			"exa_mcp",
+			"searxng",
+		];
+
+		const updated: SearchConfig = {
+			...existing,
+			backends: {
+				...existing.backends,
+				...Object.fromEntries(
+					freeBackends.map(name => [name, { enabled: true }])
+				),
+			},
+		};
+
+		writeFileSync(configPath, JSON.stringify(updated, null, 2) + "\n", { mode: 0o600 });
+		ctx.ui.notify(
+			`Enabled: DuckDuckGo, Jina, Marginalia, Exa MCP, SearXNG. Run /reload to activate.`,
+			"success",
+		);
+	}
 
 	// -------------------------------------------------------------------------
 	// Global settings configuration
