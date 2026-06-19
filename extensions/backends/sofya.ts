@@ -52,6 +52,7 @@ export async function fetchSofya(
 	url: string,
 	apiKey: string,
 	signal?: AbortSignal,
+	opts?: { includeRawHtml?: boolean },
 ): Promise<{ title: string; url: string; content: string }> {
 	// SSRF guard — block private/internal addresses
 	const ssrfError = validateUrl(url);
@@ -59,13 +60,14 @@ export async function fetchSofya(
 		throw new Error(ssrfError);
 	}
 
+	const includeRawHtml = opts?.includeRawHtml ?? false;
 	const response = await fetch(`${SOFYA_BASE}/v1/fetch`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 			Authorization: `Bearer ${apiKey}`,
 		},
-		body: JSON.stringify({ urls: [url], include_raw_html: false }),
+		body: JSON.stringify({ urls: [url], include_raw_html: includeRawHtml }),
 		signal: timeoutSignal(signal),
 	});
 	if (!response.ok) {

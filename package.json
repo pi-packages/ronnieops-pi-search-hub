@@ -32,6 +32,10 @@
   "author": "",
   "license": "MIT",
   "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "bugs": {
     "url": "https://github.com/ronnieops/pi-search-hub/issues"
   },

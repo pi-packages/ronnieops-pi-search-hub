@@ -285,6 +285,32 @@ describe("fetchSofya", () => {
 		expect(result.content).toBe("Page content here");
 		expect(result.title).toBe("Example");
 	});
+
+	it("sends include_raw_html:false by default", async () => {
+		fetchSpy.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({
+				results: [{ success: true, url: "https://example.com", content: "x" }],
+			}),
+		} as Response);
+
+		await fetchSofya("https://example.com", "valid-key");
+		const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+		expect(body.include_raw_html).toBe(false);
+	});
+
+	it("sends include_raw_html:true when opts.includeRawHtml set", async () => {
+		fetchSpy.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({
+				results: [{ success: true, url: "https://example.com", content: "<html>x</html>" }],
+			}),
+		} as Response);
+
+		await fetchSofya("https://example.com", "valid-key", undefined, { includeRawHtml: true });
+		const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+		expect(body.include_raw_html).toBe(true);
+	});
 });
 
 // ---------------------------------------------------------------------------

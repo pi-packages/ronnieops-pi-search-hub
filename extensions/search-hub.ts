@@ -46,13 +46,16 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 
 import type { BackendConfig, SearchConfig, SearchResult, SearchResultWithBackend } from "./types.js";
-import { getAgentDir, timeoutSignal, sanitizeError, clearCooldowns, MISSING_KEY_HELP } from "./utils.js";
+import { getAgentDir, timeoutSignal, sanitizeError, clearCooldowns, MISSING_KEY_HELP, validateUrl } from "./utils.js";
 import { resolveBackendKey, getKeySource } from "./credentials.js";
 import { fetchSofya } from "./backends/sofya.js";
 import { config, refreshConfig, getActiveBackends, recordLatency, latencyMap } from "./config.js";
 import { BACKEND_DEFS, runBackend } from "./backends/registry.js";
 import { selectBackendsForFallback, reciprocalRankFusion } from "./dispatch.js";
 import { formatResults, formatCombinedResults, formatResultsCompact, formatCombinedResultsCompact } from "./formatters.js";
+
+/** Cap on a single web_read response body, in bytes, to bound memory use on heavy pages. */
+const READ_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 
 // ---------------------------------------------------------------------------
 // Extension
@@ -333,6 +336,12 @@ export default function (pi: ExtensionAPI) {
 			const readerLabel = reader === "sofya" ? "Sofya" : "Jina";
 			setStatus(`📄 ${readerLabel}: fetching...`);
 
+			// SSRF guard — block private/internal addresses regardless of reader.
+			const ssrfError = validateUrl(url);
+			if (ssrfError) {
+				throw new Error(ssrfError);
+			}
+
 			let content: string;
 			if (reader === "sofya") {
 				// Sofya Fetch: clean markdown via 250+ site-specific parsers.
@@ -377,6 +386,12 @@ export default function (pi: ExtensionAPI) {
 				if (!response.ok) {
 					const text = await response.text().catch(() => "");
 					throw new Error(`Failed to read ${url}: ${sanitizeError(response.status, text)}`);
+				}
+
+				// Size guard — refuse oversized payloads before buffering into memory.
+				const contentLength = parseInt(response.headers.get("content-length") ?? "", 10);
+				if (Number.isFinite(contentLength) && contentLength > READ_MAX_BYTES) {
+					throw new Error(`Failed to read ${url}: response too large (${contentLength} bytes, limit ${READ_MAX_BYTES})`);
 				}
 
 				content = await response.text();

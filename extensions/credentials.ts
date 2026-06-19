@@ -72,6 +72,11 @@ export function resolveConfigValue(reference: string | undefined): string | unde
 	}
 
 	// Otherwise → literal string (actual key in config)
+	// Reject common accidental non-key literals that would otherwise leak into
+	// Authorization headers as "Bearer null" / "Bearer undefined".
+	if (reference === "null" || reference === "undefined" || reference === "none") {
+		return undefined;
+	}
 	return reference;
 }
 
