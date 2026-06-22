@@ -76,7 +76,7 @@ The `web_read` tool supports:
 | 4   | **Tavily**            | 1,000 calls/month             |   Yes    | [tavily.com](https://tavily.com)                                  |
 | 5   | **Serper** (Google)   | 2,500 free queries (one-time) |   Yes    | [serper.dev](https://serper.dev)                                  |
 | 6   | **Brave**             | 2,000 queries/month           |   Yes    | [brave.com/search/api](https://brave.com/search/api)              |
-| 7   | **Firecrawl**         | 500 free credits              |   Yes    | [firecrawl.dev](https://www.firecrawl.dev)                        |
+| 7   | **Firecrawl**         | 1,000 keyless credits/mo      | **No**   | [firecrawl.dev](https://www.firecrawl.dev)                        |
 | 8   | **Exa**               | 1,000 free queries/month      |   Yes    | [exa.ai](https://dashboard.exa.ai/api-keys)                       |
 | 8.1 | **Exa MCP**           | Unlimited (rate-limited)      |  **No**  | [mcp.exa.ai](https://mcp.exa.ai)                                 |
 | 9   | **LangSearch**        | Genuinely free, no CC         |   Yes    | [langsearch.com](https://langsearch.com)                          |
@@ -124,7 +124,7 @@ Configure backends globally (all projects) or per-project:
     "tavily": { "enabled": true, "apiKey": "TAVILY_API_KEY" },
     "brave": { "enabled": true, "apiKey": "BRAVE_API_KEY" },
     "exa": { "enabled": true, "apiKey": "EXA_API_KEY" },
-    "firecrawl": { "enabled": true, "apiKey": "FIRECRAWL_API_KEY" },
+    "firecrawl": { "enabled": true, "apiKey": "FIRECRAWL_API_KEY" },  // apiKey optional — works keyless (1k credits/mo)
     "langsearch": { "enabled": true, "apiKey": "LANGSEARCH_API_KEY" },
     "websearchapi": { "enabled": true, "apiKey": "WEBSEARCHAPI_API_KEY" },
     "perplexity": {

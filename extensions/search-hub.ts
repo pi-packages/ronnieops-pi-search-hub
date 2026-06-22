@@ -9,7 +9,7 @@
  *   brave         — ✅ Brave Search, 2000 free/mo. 460ms
  *   tavily        — ✅ AI search, 1000 free/mo. 356ms BEST QUALITY
  *   exa           — ✅ AI-native, 1000 free/mo. 137ms FASTEST
- *   firecrawl     — ✅ Search+crawl, 500 free credits. 644ms
+ *   firecrawl     — ✅ Search+crawl, keyless 1000 credits/mo (optional key). 644ms
  *   langsearch    — ✅ Free tier, no CC. 1816ms
  *   websearchapi  — ✅ Google-powered, 2000 free credits. 1323ms
  *   perplexity    — ✅ Unlimited free Sonar, citation-based answers

@@ -145,14 +145,14 @@ export const BACKEND_DEFS: Record<string, BackendRunner> = {
 		},
 	},
 	firecrawl: {
-		needsKey: true,
+		needsKey: false,
 		needsKeyFromConfig: false,
-		optionalKey: false,
+		optionalKey: true,
 		needsInstanceUrl: false,
 		label: "Firecrawl",
-		setupLabel: "Firecrawl (500 free credits)",
+		setupLabel: "Firecrawl (keyless: 1000 free credits/mo, optional key for more)",
 		search: async (query, numResults, { key, signal }) => {
-			const result = await searchFirecrawl(query, numResults, key!, signal);
+			const result = await searchFirecrawl(query, numResults, key, signal);
 			return { results: result.results };
 		},
 	},

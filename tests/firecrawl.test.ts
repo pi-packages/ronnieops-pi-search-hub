@@ -1,9 +1,9 @@
 /**
  * Unit tests for Firecrawl backend HTTP layer.
  *
- * Covers Authorization header behavior, error handling, and abort signal.
- * The registry gating (needsKey/MISSING_KEY_HELP) is exercised via integration
- * tests; these tests focus on searchFirecrawl itself.
+ * Covers Authorization header behavior (with and without a key), error
+ * handling, and abort signal. The registry gating (optionalKey/MISSING_KEY_HELP)
+ * is exercised via integration tests; these tests focus on searchFirecrawl itself.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -33,6 +33,20 @@ describe("searchFirecrawl", () => {
 		expect(headers["Authorization"]).toBe("Bearer fc-test-key");
 		expect(init.method).toBe("POST");
 		expect(JSON.parse(init.body as string)).toEqual({ query: "rust async", limit: 5 });
+	});
+
+	it("omits Authorization header when no key is provided (keyless mode)", async () => {
+		fetchSpy.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ data: { web: [] } }),
+		} as Response);
+
+		await searchFirecrawl("q", 5);
+
+		const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		const headers = init.headers as Record<string, string>;
+		expect(headers["Authorization"]).toBeUndefined();
+		expect(headers["Content-Type"]).toBe("application/json");
 	});
 
 	it("posts to the Firecrawl v2 search endpoint", async () => {
