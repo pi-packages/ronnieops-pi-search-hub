@@ -1,3 +1,20 @@
+# Release v2.6.0
+
+## Bug Fixes
+- **persist() omitted staleAt from serialized cache entries.** Cache entries saved to disk were missing the `staleAt` field. On reload, the stale window was recomputed as `expiresAt + (ttlMs * staleMultiplier)`, drifting forward if `ttlMs` or `staleMultiplier` differed between processes. Fixed by adding `staleAt: v.staleAt` to the persist serialization map.
+- **round-robin with empty backends returned `[undefined]`.** When `selectBackendsForFallback("round-robin", [])` was called, `backends.length === 0` caused `NaN` index (`roundRobinIndex % 0`), returning `undefined` as the first element. Added an early guard: `if (backends.length === 0) return []`.
+
+## Tests
+- **speedScore=0 clamping now asserted.** The "very slow backends" test in scoring.test.ts recorded 10s latency but only asserted `avgLatency`. Now also asserts `compositeScore ≈ 0.6` and verifies a fast backend scores higher than the slow one.
+- **best-latency dispatch integration test added.** `selectBackendsForFallback("best-latency", ...)` now exercised in the integration suite, verifying fast backend ranks first, broken backend last.
+- **round-robin threshold strengthened.** Integration test now uses 12 calls instead of 6, requiring all 3 backends to appear as first element.
+- **262/262 tests passing** (13 files, up from 260/260).
+
+## Maintenance
+- **Window reset test notes code-inspection approach.** Full time-progression testing of the 60s window reset requires fake timers that reliably patch `Date.now()` across ESM module boundaries in Vitest. A code-inspection comment documents the correct reset logic in scoring.ts.
+
+---
+
 # Release v2.5.0 (Correctness & Test Coverage)
 
 ## Bug Fixes
