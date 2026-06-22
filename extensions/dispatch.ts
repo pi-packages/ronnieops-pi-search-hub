@@ -24,6 +24,7 @@ export function selectBackendsForFallback(
 			return backends;
 		}
 		case "round-robin": {
+			if (backends.length === 0) return [];
 			const index = roundRobinIndex % backends.length;
 			incrementRoundRobin();
 			const selected = backends[index];

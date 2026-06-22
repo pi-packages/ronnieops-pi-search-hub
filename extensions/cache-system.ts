@@ -238,6 +238,7 @@ export class BackendCache<T> {
 				value: v.value,
 				timestamp: v.timestamp,
 				expiresAt: v.expiresAt,
+				staleAt: v.staleAt,
 				hits: v.hits,
 			}));
 			writeFileSync(file, JSON.stringify(data), { mode: 0o600 });

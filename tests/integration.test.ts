@@ -10,6 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { reciprocalRankFusion, selectBackendsForFallback } from "../extensions/dispatch.js";
+import { recordBackendSuccess, recordBackendFailure } from "../extensions/scoring.js";
 import { resolveConfigValue, clearCredentialCache } from "../extensions/credentials.js";
 import { loadConfig } from "../extensions/config.js";
 import { SearchCache } from "../extensions/utils.js";
@@ -159,13 +160,39 @@ describe("selectBackendsForFallback", () => {
 
 		// Call multiple times — the first element should rotate
 		const firsts = new Set<string>();
-		for (let i = 0; i < 6; i++) {
+		for (let i = 0; i < 12; i++) {
 			const result = selectBackendsForFallback("round-robin", backends);
 			firsts.add(result[0]);
 		}
 
-		// With 3 backends and 6 calls, should see at least 2 different first backends
-		expect(firsts.size).toBeGreaterThanOrEqual(2);
+		// With 3 backends and 12 calls, should see all 3 backends as first
+		expect(firsts.size).toBe(3);
+	});
+
+	it("best-latency returns backends sorted by score", () => {
+		const backends = ["slow-backend", "fast-backend", "broken-backend"];
+
+		// Fast backend: fast + successful
+		recordBackendSuccess("fast-backend", 100, 10, 10);
+		// Slow backend: slow but successful
+		recordBackendSuccess("slow-backend", 5000, 10, 10);
+		// Broken backend: all failures
+		recordBackendFailure("broken-backend");
+		recordBackendFailure("broken-backend");
+
+		const result = selectBackendsForFallback("best-latency", backends);
+
+		// Should return all backends in score order (best first)
+		expect(result).toHaveLength(3);
+		// Fast backend should be first
+		expect(result[0]).toBe("fast-backend");
+		// Broken backend should be last
+		expect(result[2]).toBe("broken-backend");
+	});
+
+	it("round-robin with empty backends returns empty array", () => {
+		const result = selectBackendsForFallback("round-robin", []);
+		expect(result).toEqual([]);
 	});
 
 	it("does not mutate original array", () => {
