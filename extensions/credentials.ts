@@ -91,11 +91,15 @@ export const FALLBACK_ENV_MAP: Record<string, string> = {
 	tavily: "SEARCH_TAVILY_API_KEY",
 	exa: "SEARCH_EXA_API_KEY",
 	brave: "SEARCH_BRAVE_API_KEY",
+	"brave-llm": "SEARCH_BRAVE_API_KEY",
 	langsearch: "SEARCH_LANGSEARCH_API_KEY",
 	firecrawl: "SEARCH_FIRECRAWL_API_KEY",
 	websearchapi: "SEARCH_WEBSEARCHAPI_API_KEY",
 	perplexity: "SEARCH_PERPLEXITY_API_KEY",
 	sofya: "SEARCH_SOFYA_API_KEY",
+	youcom: "SEARCH_YOUCOM_API_KEY",
+	linkup: "SEARCH_LINKUP_API_KEY",
+	fastcrw: "SEARCH_FASTCRW_API_KEY",
 };
 
 /** Lazy resolution: config.apiKey → resolveConfigValue() → FALLBACK_ENV_MAP fallback. */

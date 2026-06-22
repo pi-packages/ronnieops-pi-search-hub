@@ -30,6 +30,7 @@ export interface CacheEntry<T> {
 	value: T;
 	timestamp: number;
 	expiresAt: number;
+	staleAt: number;
 	hits: number;
 }
 
@@ -95,8 +96,7 @@ export class BackendCache<T> {
 		}
 
 		// Check if stale (but still usable)
-		const staleExpiry = entry.expiresAt * this.staleMultiplier;
-		if (now < staleExpiry) {
+		if (now < entry.staleAt) {
 			this.stats.hits++;
 			entry.hits++;
 			return entry.value;
@@ -128,8 +128,7 @@ export class BackendCache<T> {
 		}
 
 		// Stale but usable
-		const staleExpiry = entry.expiresAt * this.staleMultiplier;
-		if (now < staleExpiry) {
+		if (now < entry.staleAt) {
 			this.stats.hits++;
 			entry.hits++;
 			return { value: entry.value, stale: true };
@@ -159,6 +158,7 @@ export class BackendCache<T> {
 			value,
 			timestamp: now,
 			expiresAt: now + this.ttlMs,
+			staleAt: now + (this.ttlMs * this.staleMultiplier),
 			hits: 0,
 		});
 	}
@@ -207,7 +207,7 @@ export class BackendCache<T> {
 		const now = Date.now();
 		let pruned = 0;
 		for (const [key, entry] of this.cache.entries()) {
-			if (now > entry.expiresAt * this.staleMultiplier) {
+			if (now > entry.staleAt) {
 				this.cache.delete(key);
 				pruned++;
 			}
@@ -267,12 +267,14 @@ export class BackendCache<T> {
 
 			const now = Date.now();
 			for (const entry of data) {
-				// Only load if not expired
-				if (now < entry.expiresAt * this.staleMultiplier) {
+				// Only load if not past stale window (reconstruct staleAt for old cache files)
+				const staleAt = (entry as { staleAt?: number }).staleAt ?? entry.expiresAt + (this.ttlMs * this.staleMultiplier);
+				if (now < staleAt) {
 					this.cache.set(entry.key, {
 						value: entry.value,
 						timestamp: entry.timestamp,
 						expiresAt: entry.expiresAt,
+						staleAt,
 						hits: entry.hits,
 					});
 				}

@@ -6,6 +6,7 @@ import type { BackendRunner, BackendConfig, SearchResult } from "../types.js";
 import { MISSING_KEY_HELP, waitForCooldown, markCooldown, searchCache, cacheKey } from "../utils.js";
 import { resolveBackendKey } from "../credentials.js";
 import { config } from "../config.js";
+import { recordBackendSuccess, recordBackendFailure } from "../scoring.js";
 
 import { searchDuckDuckGo } from "./duckduckgo.js";
 import { searchMarginalia } from "./marginalia.js";
@@ -309,11 +310,18 @@ export async function runBackend(
 		}
 
 		const bc = (config.backends as Record<string, BackendConfig> | undefined)?.[backend];
-		const result = await def.search(query, numResults, { key, instanceUrl, signal, backendConfig: bc });
-		// Cache the result
-		searchCache.set(cacheKey(query, backend, numResults), result.results);
-		return result.results;
-	} finally {
-		markCooldown(backend);
-	}
+		const startTime = Date.now();
+		try {
+			const result = await def.search(query, numResults, { key, instanceUrl, signal, backendConfig: bc });
+			const latencyMs = Date.now() - startTime;
+			// Cache the result
+			searchCache.set(cacheKey(query, backend, numResults), result.results);
+			recordBackendSuccess(backend, latencyMs, result.results.length, numResults);
+			return result.results;
+		} catch (err) {
+			recordBackendFailure(backend);
+			throw err;
+		} finally {
+			markCooldown(backend);
+		}
 }

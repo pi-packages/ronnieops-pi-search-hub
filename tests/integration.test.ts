@@ -143,6 +143,15 @@ describe("selectBackendsForFallback", () => {
 		for (const b of backends) {
 			expect(result).toContain(b);
 		}
+		// Verify some reordering happens across multiple calls (distribution check)
+		const results: string[][] = [];
+		for (let i = 0; i < 20; i++) {
+			results.push(selectBackendsForFallback("random", [...backends]));
+		}
+		// At least one call should differ from the first result — confirms shuffling
+		const first = JSON.stringify(results[0]);
+		const shuffled = results.some((r) => JSON.stringify(r) !== first);
+		expect(shuffled).toBe(true);
 	});
 
 	it("round-robin rotates starting backend", () => {
@@ -329,15 +338,15 @@ describe("SearchCache", () => {
 		expect(cache.get("missing")).toBeUndefined();
 	});
 
-	it("evicts entries after TTL", () => {
-		const cache = new SearchCache<string>(1, 10); // 1ms TTL
+	it("evicts entries after TTL", async () => {
+		const cache = new SearchCache<string>(20, 10); // 20ms TTL
 		cache.set("key1", "value1");
-		return new Promise<void>((resolve) => {
-			setTimeout(() => {
-				expect(cache.get("key1")).toBeUndefined();
-				resolve();
-			}, 10);
-		});
+		// Verify entry exists just before TTL expires
+		await new Promise((r) => setTimeout(r, 15));
+		expect(cache.get("key1")).toBe("value1"); // still valid at 15ms < 20ms TTL
+		// Verify entry is evicted after TTL
+		await new Promise((r) => setTimeout(r, 10)); // now at 25ms > 20ms TTL
+		expect(cache.get("key1")).toBeUndefined();
 	});
 
 	it("evicts oldest when at max capacity", () => {

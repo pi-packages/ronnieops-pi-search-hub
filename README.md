@@ -243,7 +243,7 @@ curl -X POST "https://api.perplexity.ai/chat/completions" \
   -H "Authorization: Bearer $KEY" \
   -d '{"model": "sonar", "messages": [{"role": "user", "content": "test"}], "search_context_size": "low"}'
 
-# Quick test Firecrawl (v2 endpoint — code still uses v1)
+# Quick test Firecrawl (v2 endpoint)
 curl -X POST "https://api.firecrawl.dev/v2/search" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $KEY" \

@@ -7,7 +7,7 @@
  * - /docs, /src, /blob variants for GitHub
  */
 
-import { assertSafeUrl } from "./utils.js";
+import { assertSafeUrl, timeoutSignal } from "./utils.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -247,12 +247,3 @@ export async function fetchWithSiblingProbe(
 	return null;
 }
 
-// ---------------------------------------------------------------------------
-// Helper function (re-export from utils for convenience)
-// ---------------------------------------------------------------------------
-
-function timeoutSignal(signal?: AbortSignal): AbortSignal {
-	return signal 
-		? AbortSignal.any([signal, AbortSignal.timeout(30000)])
-		: AbortSignal.timeout(30000);
-}

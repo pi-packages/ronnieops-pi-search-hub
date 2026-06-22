@@ -1,3 +1,25 @@
+# Release v2.5.0 (Correctness & Test Coverage)
+
+## Bug Fixes
+- **Cache stale expiry calculation was catastrophically wrong.** BackendCache computed staleExpiry = expiresAt * staleMultiplier (multiplying an absolute Unix timestamp by 2), producing a date in 2106. This made the stale window effectively infinite -- stale entries were never evicted, prune() never removed anything, and load() loaded all expired entries from disk. Fixed by storing a dedicated staleAt timestamp at entry-creation time and comparing now < entry.staleAt consistently. Memory leak on long-running processes resolved.
+- **DuckDuckGo cryptic error when ddgs Python package missing.** When ddgs import failed, users saw an opaque ModuleNotFoundError with no actionable guidance. Now the Python script detects the missing module specifically and prints: Install ddgs: pip3 install ddgs.
+- **best-latency selection strategy was dead code.** recordBackendSuccess and recordBackendFailure in scoring.ts were defined but never called, so the composite scoring subsystem always returned 0.5 for every backend. Now wired into runBackend() in the registry.
+
+## Tests
+- **New scoring.test.ts** -- 10 test cases covering all scoring.ts functions: running average convergence, success/failure recording, window reset, speed clamping, composite scoring, getBestBackends edge cases.
+- **New duckduckgo.test.ts** -- 11 test cases covering the Python subprocess backend: successful search, spawn error, missing ddgs module, exception stderr, non-zero exit, malformed JSON, timeout, abort signal, options injection, platform detection.
+- **Improved integration.test.ts** -- TTL eviction test now verifies entry exists before TTL expires. Random selection test now verifies actual shuffling across 20 calls.
+
+## Maintenance
+- **sibling-probe.ts**: Removed duplicate timeoutSignal() function, now imported from utils.js.
+- **FALLBACK_ENV_MAP**: Added brave-llm, youcom, linkup, fastcrw convenience env var fallbacks.
+- **README**: Removed stale Firecrawl curl comment referencing v1.
+
+## Stats
+- 260 tests (up from 236), 13 test files (up from 11)
+
+---
+
 # Release v2.4.0 (Firecrawl Keyless)
 
 ## 🚀 New Features
