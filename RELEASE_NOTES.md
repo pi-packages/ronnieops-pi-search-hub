@@ -1,3 +1,10 @@
+# Release v2.6.1
+
+## Bug Fixes
+- **runBackend had orphaned try block.** The v2.5.0 scoring-wiring change added an inner `try/catch/finally` around `def.search()` but left a stray outer `try {` wrapping key/URL resolution. The orphaned try had no catch/finally and shadowed a `const key` declaration, causing TypeScript error TS1472 at registry.ts:328. Vitest uses esbuild for transforms (no type checking), so this was silent in CI. Removed the outer try and inlined the `cacheKey()` call to avoid the variable conflict.
+
+---
+
 # Release v2.6.0
 
 ## Bug Fixes
