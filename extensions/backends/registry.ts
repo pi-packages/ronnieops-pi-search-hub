@@ -273,55 +273,53 @@ export async function runBackend(
 	signal?: AbortSignal,
 	options?: { skipCache?: boolean },
 ): Promise<SearchResult[]> {
-	// Check cache first
-	const key = cacheKey(query, backend, numResults);
+	// Check cache first (inline — no persistent key var needed here)
 	if (!options?.skipCache) {
-		const cached = searchCache.get(key);
+		const cached = searchCache.get(cacheKey(query, backend, numResults));
 		if (cached) return cached;
 	}
 
 	await waitForCooldown(backend);
-	try {
-		const def = BACKEND_DEFS[backend];
-		if (!def) throw new Error(`Unknown backend: ${backend}`);
+	const def = BACKEND_DEFS[backend];
+	if (!def) throw new Error(`Unknown backend: ${backend}`);
 
-		let key: string | undefined;
-		if (def.needsKeyFromConfig) {
-			const bc = (config.backends as Record<string, BackendConfig> | undefined)?.[backend];
-			key = bc?.apiKey;
-		} else if (def.needsKey) {
-			key = resolveBackendKey(backend, config);
-			if (!key) {
-				const label = def.label;
-				throw new Error(`${label} backend not configured. ${MISSING_KEY_HELP}`);
-			}
-		} else if (def.optionalKey) {
-			// Optionally resolve key — don't throw if missing
-			key = resolveBackendKey(backend, config);
-		}
-
-		let instanceUrl: string | undefined;
-		if (def.needsInstanceUrl) {
-			const bc = (config.backends as Record<string, BackendConfig> | undefined)?.[backend];
-			instanceUrl = bc?.instanceUrl;
-			if (!instanceUrl) {
-				throw new Error(`SearXNG instance URL not configured. Set searxng.instanceUrl in search.json`);
-			}
-		}
-
+	let key: string | undefined;
+	if (def.needsKeyFromConfig) {
 		const bc = (config.backends as Record<string, BackendConfig> | undefined)?.[backend];
-		const startTime = Date.now();
-		try {
-			const result = await def.search(query, numResults, { key, instanceUrl, signal, backendConfig: bc });
-			const latencyMs = Date.now() - startTime;
-			// Cache the result
-			searchCache.set(cacheKey(query, backend, numResults), result.results);
-			recordBackendSuccess(backend, latencyMs, result.results.length, numResults);
-			return result.results;
-		} catch (err) {
-			recordBackendFailure(backend);
-			throw err;
-		} finally {
-			markCooldown(backend);
+		key = bc?.apiKey;
+	} else if (def.needsKey) {
+		key = resolveBackendKey(backend, config);
+		if (!key) {
+			const label = def.label;
+			throw new Error(`${label} backend not configured. ${MISSING_KEY_HELP}`);
 		}
+	} else if (def.optionalKey) {
+		// Optionally resolve key — don't throw if missing
+		key = resolveBackendKey(backend, config);
+	}
+
+	let instanceUrl: string | undefined;
+	if (def.needsInstanceUrl) {
+		const bc = (config.backends as Record<string, BackendConfig> | undefined)?.[backend];
+		instanceUrl = bc?.instanceUrl;
+		if (!instanceUrl) {
+			throw new Error(`SearXNG instance URL not configured. Set searxng.instanceUrl in search.json`);
+		}
+	}
+
+	const bc = (config.backends as Record<string, BackendConfig> | undefined)?.[backend];
+	const startTime = Date.now();
+	try {
+		const result = await def.search(query, numResults, { key, instanceUrl, signal, backendConfig: bc });
+		const latencyMs = Date.now() - startTime;
+		// Cache the result
+		searchCache.set(cacheKey(query, backend, numResults), result.results);
+		recordBackendSuccess(backend, latencyMs, result.results.length, numResults);
+		return result.results;
+	} catch (err) {
+		recordBackendFailure(backend);
+		throw err;
+	} finally {
+		markCooldown(backend);
+	}
 }
