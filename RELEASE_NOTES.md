@@ -1,3 +1,44 @@
+# Release v2.4.0 (Firecrawl Keyless)
+
+## 🚀 New Features
+- **Firecrawl Keyless mode** — `apiKey` is now optional on the Firecrawl backend. Firecrawl launched hosted keyless access on 2026-06-16 (1,000 free credits/month, no `Authorization` header required). The backend now runs zero-config like Jina and Marginalia; bring your own key only for higher volume.
+  - `searchFirecrawl()`: `apiKey` param optional, `Authorization: Bearer` header attached only when a key is present.
+  - Registry flipped to `optionalKey: true`; setup label updated to reflect the keyless tier.
+  - New test for the headerless request path.
+  - README tier table updated: Firecrawl now "No" key required, 1k keyless credits/mo.
+
+## 🔁 Reverts / Corrected Decisions
+- **Issue #18 reopened and resolved.** Previously closed as "not planned" on the rationale that the hosted Firecrawl API required a key on every request. Firecrawl Keyless invalidated that assumption; the fix shipped in this release.
+- **PR #20 closed** (superseded). It guarded the `Authorization` header but left `apiKey` required, so keyless wouldn't work end-to-end through the registry's `MISSING_KEY_HELP` gate. Credit to @CoderTCY for both the original report and the PR.
+
+## 📊 Stats
+- 18 backends total (Firecrawl now keyless-capable)
+- 236 tests passing (was 235)
+
+---
+
+# Release v2.3.3 (Bug fix release)
+
+## 🐛 Fixes
+- Fixed duplicate `configDir` variable in setup menu.
+
+## 📊 Stats
+- 18 backends total
+- 228 tests passing
+
+---
+
+# Release v2.3.2 (Bug fix release)
+
+## 🐛 Fixes
+- Fixed duplicate `option` variable in setup menu that caused parse error.
+
+## 📊 Stats
+- 18 backends total
+- 228 tests passing
+
+---
+
 # Release v2.3.1 (Bug fix release)
 
 ## 🐛 Fixes
