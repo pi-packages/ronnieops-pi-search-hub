@@ -49,6 +49,9 @@ import type { BackendConfig, SearchConfig, SearchResult, SearchResultWithBackend
 import { getAgentDir, timeoutSignal, sanitizeError, clearCooldowns, MISSING_KEY_HELP, validateUrl } from "./utils.js";
 import { resolveBackendKey, getKeySource } from "./credentials.js";
 import { fetchSofya } from "./backends/sofya.js";
+import { fetchFirecrawl } from "./backends/firecrawl.js";
+import { fetchExaContents } from "./backends/exa.js";
+import { fetchExaMCP } from "./backends/exa-mcp.js";
 import { config, refreshConfig, getActiveBackends, recordLatency, latencyMap } from "./config.js";
 import { BACKEND_DEFS, runBackend } from "./backends/registry.js";
 import { selectBackendsForFallback, reciprocalRankFusion } from "./dispatch.js";
@@ -312,10 +315,13 @@ export default function (pi: ExtensionAPI) {
 				}),
 			),
 			reader: Type.Optional(
-				StringEnum(["jina", "sofya"] as const, {
+				StringEnum(["jina", "sofya", "firecrawl", "exa", "exa_mcp"] as const, {
 					description:
-						"Reader backend: 'jina' (default, free, supports keywords/mode/objective) or " +
-						"'sofya' (250+ site-specific parsers, needs API key). Overrides the configured default.",
+						"Reader backend: 'jina' (default, free, supports keywords/mode/objective), " +
+						"'sofya' (250+ site-specific parsers, needs API key), " +
+						"'firecrawl' (keyless, 1000 credits/mo), " +
+						"'exa' (needs API key, 1000 req/mo), or " +
+						"'exa_mcp' (zero-config, rate-limited). Overrides the configured default.",
 				}),
 			),
 		}),
@@ -333,7 +339,7 @@ export default function (pi: ExtensionAPI) {
 				: `https://${params.url}`;
 
 			const reader = params.reader ?? config.reader ?? "jina";
-			const readerLabel = reader === "sofya" ? "Sofya" : "Jina";
+			const readerLabel = reader === "sofya" ? "Sofya" : reader === "firecrawl" ? "Firecrawl" : reader === "exa" ? "Exa" : reader === "exa_mcp" ? "Exa MCP" : "Jina";
 			setStatus(`📄 ${readerLabel}: fetching...`);
 
 			// SSRF guard — block private/internal addresses regardless of reader.
@@ -350,6 +356,26 @@ export default function (pi: ExtensionAPI) {
 					throw new Error(`Sofya reader selected but no API key configured. ${MISSING_KEY_HELP}`);
 				}
 				const result = await fetchSofya(url, sofyaKey, signal);
+				content = result.content;
+			} else if (reader === "firecrawl") {
+				// Firecrawl Scrape: keyless mode (1000 free credits/mo).
+				const firecrawlKey = resolveBackendKey("firecrawl", config);
+				const result = await fetchFirecrawl(url, firecrawlKey, signal);
+				content = result.content;
+			} else if (reader === "exa") {
+				// Exa Contents API: needs API key (1000 req/mo, shared with search).
+				const exaKey = resolveBackendKey("exa", config);
+				if (!exaKey) {
+					throw new Error(`Exa reader selected but no API key configured. ${MISSING_KEY_HELP}`);
+				}
+				const result = await fetchExaContents(url, exaKey, signal);
+				if (result.warning) {
+					ctx.ui.notify(result.warning, "warn");
+				}
+				content = result.content;
+			} else if (reader === "exa_mcp") {
+				// Exa MCP web_fetch: zero-config, no API key needed.
+				const result = await fetchExaMCP(url, signal);
 				content = result.content;
 			} else {
 				// Jina Reader: free, supports keywords / mode / objective hints.
@@ -723,12 +749,14 @@ export default function (pi: ExtensionAPI) {
 				break;
 			}
 			case "reader": {
-				const choice = await ctx.ui.select(`${label} — current: ${selected.split(": ")[1]}`, ["jina (free)", "sofya (needs key)", "Cancel"]);
+				const choice = await ctx.ui.select(`${label} — current: ${selected.split(": ")[1]}`, [
+					"jina (free)", "sofya (needs key)", "firecrawl (keyless)", "exa (needs key)", "exa_mcp (free)", "Cancel"
+				]);
 				if (choice === "Cancel" || !choice) {
 					ctx.ui.notify("Setup cancelled.", "info");
 					return;
 				}
-				value = choice.startsWith("jina") ? "jina" : "sofya";
+				value = choice.startsWith("jina") ? "jina" : choice.startsWith("firecrawl") ? "firecrawl" : choice.startsWith("exa_mcp") ? "exa_mcp" : choice.startsWith("exa") ? "exa" : "sofya";
 				break;
 			}
 			case "selectionStrategy": {
