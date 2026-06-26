@@ -1,3 +1,28 @@
+# Release v2.8.0
+
+## 🚀 New Features
+- **OpenAI Codex search backend** — 19th search provider. Uses Pi-managed authentication via `AuthStorage.getApiKey` (no API key in config). Run `/login` in Pi and select OpenAI Codex. Supports configurable `model` (default: `gpt-5.4-mini`). Hosted web_search injected via `injectCodexSearchPayload`.
+- **Targeted combine mode** — New `combineMode: "targeted"` option caps combine fan-out to 3 usable backends instead of querying all enabled backends. Uses configured selection strategy to order backends, queries in batches until 3 return non-empty results, then RRF-merges. Set in `search.json`: `{ "combine": true, "combineMode": "targeted" }`.
+
+## 🐛 Fixes (from code review)
+- **timeoutSignal wrapper added** to OpenAI Codex stream call — only backend missing the 30s timeout guard.
+- **combineMode validated at runtime** — unrecognized values now log a warning and fall back to `"all"` instead of silently falling through.
+- **search-status display fixed** for Pi-managed auth backends — shows `"— (Pi auth)"` instead of a misleading `"key: ✓"` checkmark.
+- **Content field used as fallback** in `normalizeSearchResult` when snippet is missing — valid results no longer silently dropped.
+
+## 🧪 Tests
+- **164 tests passing** (13 new: URL helpers, content fallback, targeted combine edge cases).
+- **URL normalization helpers exported and unit-tested** — `normalizeHttpUrl`, `normalizeUrlForDedup`, `looksLikeDomainOrPath` now directly tested.
+- **runTargetedCombine edge cases** — empty backends, all fail, single backend, numResults distribution.
+- **Content fallback test** — verifies results with content but no snippet are preserved.
+
+## 📊 Stats
+- 19 backends total (added OpenAI Codex)
+- 164 tests passing (9 test files)
+- 978 lines added, 10 lines removed
+
+---
+
 # Release v2.7.1
 
 ## Bug Fixes
