@@ -36,6 +36,8 @@ export interface BackendConfig {
 export interface SearchConfig {
 	defaultBackend?: string;
 	combine?: boolean;
+	/** Combine strategy when combine is enabled. "all" queries every active backend; "targeted" queries only enough ordered backends to collect up to 3 usable result sets. */
+	combineMode?: "all" | "targeted";
 	selectionStrategy?: "sequential" | "random" | "round-robin" | "best-latency";
 	/** Reader backend for web_read. "jina" (default, free), "sofya" (250+ site parsers, needs key), "firecrawl" (keyless, 1000 credits/mo), "exa" (needs key, 1000 req/mo), or "exa_mcp" (zero-config, rate-limited). */
 	reader?: "jina" | "sofya" | "firecrawl" | "exa" | "exa_mcp";
@@ -55,6 +57,7 @@ export interface SearchConfig {
 		tavily?: BackendConfig;
 		exa?: BackendConfig;
 		exa_mcp?: BackendConfig;
+		"openai-codex"?: BackendConfig;
 		brave?: BackendConfig;
 		braveLLM?: BackendConfig;
 		"brave-llm"?: BackendConfig;

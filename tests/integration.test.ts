@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { reciprocalRankFusion, selectBackendsForFallback } from "../extensions/dispatch.js";
+import { reciprocalRankFusion, runTargetedCombine, selectBackendsForFallback } from "../extensions/dispatch.js";
 import { recordBackendSuccess, recordBackendFailure } from "../extensions/scoring.js";
 import { resolveConfigValue, clearCredentialCache } from "../extensions/credentials.js";
 import { loadConfig } from "../extensions/config.js";
@@ -122,6 +122,152 @@ describe("reciprocalRankFusion", () => {
 	it("returns empty array when no successful backends", () => {
 		const results = reciprocalRankFusion([], 10);
 		expect(results).toHaveLength(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Targeted combine tests
+// ---------------------------------------------------------------------------
+
+describe("runTargetedCombine", () => {
+	const resultFor = (backend: string) => [{
+		title: `${backend} result`,
+		url: `https://example.com/${backend}`,
+		snippet: `${backend} snippet`,
+	}];
+
+	it("stops after the first three usable backends", async () => {
+		const calls: Array<{ backend: string; numResults: number }> = [];
+		const result = await runTargetedCombine({
+			orderedBackends: ["a", "b", "c", "d"],
+			query: "test query",
+			numResults: 10,
+			runBackend: async (backend, _query, numResults) => {
+				calls.push({ backend, numResults });
+				return resultFor(backend);
+			},
+		});
+
+		expect(calls).toEqual([
+			{ backend: "a", numResults: 4 },
+			{ backend: "b", numResults: 4 },
+			{ backend: "c", numResults: 4 },
+		]);
+		expect(result.usableBackendCount).toBe(3);
+		expect(result.results).toHaveLength(3);
+		expect(Array.from(result.backendStats.keys())).toEqual(["a", "b", "c"]);
+	});
+
+	it("tops up only the missing usable backend count", async () => {
+		const calls: string[] = [];
+		const result = await runTargetedCombine({
+			orderedBackends: ["a", "b", "c", "d", "e"],
+			query: "test query",
+			numResults: 9,
+			runBackend: async (backend) => {
+				calls.push(backend);
+				if (backend === "b") throw new Error("b failed");
+				return resultFor(backend);
+			},
+		});
+
+		expect(calls).toEqual(["a", "b", "c", "d"]);
+		expect(result.usableBackendCount).toBe(3);
+		expect(result.backendStats.get("b")).toMatchObject({ success: false, count: 0, error: "b failed" });
+		expect(result.backendStats.has("e")).toBe(false);
+	});
+
+	it("runs the next three when the first three are not usable", async () => {
+		const calls: string[] = [];
+		const result = await runTargetedCombine({
+			orderedBackends: ["a", "b", "c", "d", "e", "f", "g"],
+			query: "test query",
+			numResults: 6,
+			runBackend: async (backend) => {
+				calls.push(backend);
+				if (["a", "b", "c"].includes(backend)) return [];
+				return resultFor(backend);
+			},
+		});
+
+		expect(calls).toEqual(["a", "b", "c", "d", "e", "f"]);
+		expect(result.usableBackendCount).toBe(3);
+		expect(result.backendStats.get("a")).toMatchObject({ success: true, count: 0 });
+		expect(result.backendStats.has("g")).toBe(false);
+	});
+
+	it("returns partial results when active backends are exhausted", async () => {
+		const result = await runTargetedCombine({
+			orderedBackends: ["a", "b", "c"],
+			query: "test query",
+			numResults: 10,
+			runBackend: async (backend) => {
+				if (backend === "a") return resultFor(backend);
+				if (backend === "b") return [];
+				throw new Error("c failed");
+			},
+		});
+
+		expect(result.usableBackendCount).toBe(1);
+		expect(result.results).toEqual([{ ...resultFor("a")[0], backend: "a" }]);
+		expect(result.backendStats.get("b")).toMatchObject({ success: true, count: 0 });
+		expect(result.backendStats.get("c")).toMatchObject({ success: false, count: 0, error: "c failed" });
+	});
+
+	it("returns empty when all backends fail", async () => {
+		const result = await runTargetedCombine({
+			orderedBackends: ["a", "b"],
+			query: "test query",
+			numResults: 10,
+			runBackend: async () => { throw new Error("fail"); },
+		});
+
+		expect(result.usableBackendCount).toBe(0);
+		expect(result.results).toEqual([]);
+	});
+
+	it("returns empty when orderedBackends is empty", async () => {
+		const result = await runTargetedCombine({
+			orderedBackends: [],
+			query: "test query",
+			numResults: 10,
+			runBackend: async () => [],
+		});
+
+		expect(result.usableBackendCount).toBe(0);
+		expect(result.results).toEqual([]);
+	});
+
+	it("distributes numResults across targetUsableBackends", async () => {
+		const calls: number[] = [];
+		await runTargetedCombine({
+			orderedBackends: ["a", "b", "c"],
+			query: "test query",
+			numResults: 9,
+			targetUsableBackends: 3,
+			runBackend: async (_, __, numResults) => {
+				calls.push(numResults);
+				return [{ title: "x", url: "https://x.com", snippet: "x" }];
+			},
+		});
+
+		expect(calls).toEqual([3, 3, 3]);
+	});
+
+	it("uses single backend results directly without RRF", async () => {
+		const result = await runTargetedCombine({
+			orderedBackends: ["a", "b"],
+			query: "test query",
+			numResults: 10,
+			runBackend: async (backend) => {
+				if (backend === "a") return resultFor(backend);
+				throw new Error("b fail");
+			},
+		});
+
+		expect(result.usableBackendCount).toBe(1);
+		expect(result.results).toHaveLength(1);
+		expect(result.results[0].backend).toBe("a");
 	});
 });
 
