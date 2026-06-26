@@ -42,7 +42,7 @@ export async function fetchExaContents(
 	}
 
 	// Increment usage after successful request
-	const postWarning = incrementExaUsage();
+	const warning = incrementExaUsage();
 
 	const data = (await response.json()) as Record<string, unknown>;
 	const results = Array.isArray(data.results)
@@ -65,7 +65,7 @@ export async function fetchExaContents(
 		title: (first.title as string) || "",
 		url: (first.url as string) || url,
 		content: (first.text as string) || "",
-		warning: preWarning || postWarning || undefined,
+		warning: warning || undefined,
 	};
 }
 
@@ -75,9 +75,6 @@ export async function searchExa(
 	apiKey: string,
 	signal?: AbortSignal,
 ): Promise<{ results: SearchResult[]; warning?: string }> {
-	// Check quota before making request
-	const preWarning = checkExaUsage();
-
 	const body = {
 		query,
 		numResults: Math.min(numResults, 25),
@@ -105,11 +102,11 @@ export async function searchExa(
 	}
 
 	// Increment usage after successful request
-	const postWarning = incrementExaUsage();
+	const warning = incrementExaUsage();
 
 	const data = (await response.json()) as Record<string, unknown>;
 	return {
 		results: parseExa(data, numResults),
-		warning: preWarning || postWarning || undefined,
+		warning: warning || undefined,
 	};
 }
