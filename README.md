@@ -1,6 +1,6 @@
 # pi-search-hub
 
-Unified web search + content extraction extension for [pi](https://pi.dev) with **18 backend providers** (all working). One `web_search` tool, one `web_read` tool (Jina or Sofya reader), auto-fallback, RRF-ranked combine mode, and credential resolution via env/shell/literal. Firecrawl now supports **keyless mode** (1,000 free credits/month, no API key required).
+Unified web search + content extraction extension for [pi](https://pi.dev) with **18 backend providers** (all working). One `web_search` tool, one `web_read` tool (Jina or Sofya reader), auto-fallback, RRF-ranked combine mode, and credential resolution via env/shell/literal. Firecrawl supports **keyless mode** (1,000 free credits/month, no API key required).
 
 ## Installation
 
@@ -225,8 +225,8 @@ RRF assigns each result a score of `Σ(1 / (60 + rank_i))` across all backends t
 ## Testing
 
 ```bash
-# Run unit tests for backend parsers
-npx vitest run backends/parsers.test.ts
+# Run all tests
+npx vitest run
 
 # Quick test Jina AI (with your free API key)
 curl -s -H "Authorization: Bearer $JINA_API_KEY" "https://s.jina.ai/?q=test&format=json" | jq .

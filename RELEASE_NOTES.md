@@ -1,3 +1,23 @@
+# Release v2.7.1
+
+## Bug Fixes
+- **24 TypeScript compilation errors resolved.** `config.ts` had implicit `any` on backends index (5 errors), `tls-fingerprint.ts` had type mismatches on `Headers` vs `Record` union (10 errors), `content-negotiation.ts` had implicit `any` callback params (4 errors), `duckduckgo.test.ts` had mock type issues (5 errors). All fixed.
+- **3 unused imports removed.** `BackendConfig` from `scoring.ts`, `timeoutSignal` from `gfm-support.ts`, `latencyMap` from `dispatch.ts`.
+- **Duplicate SSRF guard removed from `sofya.ts`.** Caller (`web_read`) already validates — defense-in-depth was running validation twice.
+- **Duplicate Exa quota check removed from `exa.ts`.** `checkExaUsage()` was called before every request, but `incrementExaUsage()` already handles the check internally. Warning was returned twice.
+- **`require()` replaced with ESM imports in `utils.ts`.** Last 2 `require()` calls in production code now use top-level ESM imports. Zero `require()` calls remain.
+
+## Maintenance
+- **7 dead-code modules removed (~3,500 lines).** `cache-system`, `tool-persistence`, `gfm-support`, `content-negotiation`, `sibling-probe`, `spillover`, `tls-fingerprint` — all fully implemented and tested but never imported by the main extension. Reduces maintenance surface significantly.
+
+## Stats
+- 0 TypeScript errors (was 24)
+- 143 tests passing (8 test files)
+- 0 `require()` calls in production code
+- ~3,500 lines removed
+
+---
+
 # Release v2.6.1
 
 ## Bug Fixes
