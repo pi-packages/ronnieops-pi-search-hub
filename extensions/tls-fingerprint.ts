@@ -98,16 +98,17 @@ async function initWreq(): Promise<boolean> {
  */
 function isBotBlocked(response: Response | { status: number; headers?: Record<string, string> }): boolean {
 	// Check status code
-	if ("status" in response && BLOCKED_STATUS_CODES.includes(response.status)) {
+	if (BLOCKED_STATUS_CODES.includes(response.status)) {
 		return true;
 	}
 	
 	// Check headers for bot detection clues
-	const headers = "headers" in response ? response.headers : {};
-	const cfRay = headers["cf-ray"] || headers["CF-Ray"];
-	const cfCaptcha = headers["cf-captcha-ray"] || headers["CF-Captcha-Ray"];
-	
-	if (cfRay || cfCaptcha) return true;
+	if ("headers" in response && response.headers) {
+		const h = response.headers;
+		const cfRay = h instanceof Headers ? (h.get("cf-ray") || h.get("CF-Ray")) : (h["cf-ray"] || h["CF-Ray"]);
+		const cfCaptcha = h instanceof Headers ? (h.get("cf-captcha-ray") || h.get("CF-Captcha-Ray")) : (h["cf-captcha-ray"] || h["CF-Captcha-Ray"]);
+		if (cfRay || cfCaptcha) return true;
+	}
 	
 	return false;
 }
@@ -190,7 +191,7 @@ export async function tlsFetch(
 		proxy: options?.proxy,
 	} as Record<string, unknown>);
 	
-	return wreqResponse as TLSFetchResponse;
+	return wreqResponse as unknown as TLSFetchResponse;
 }
 
 /**
@@ -220,7 +221,7 @@ export async function createTLSSession(
 		session,
 		fetch: async (url: string, options?: TLSFetchOptions) => {
 			const response = await session.fetch(url, options as Record<string, unknown>);
-			return response as TLSFetchResponse;
+			return response as unknown as TLSFetchResponse;
 		},
 		close: async () => {
 			await session.close();

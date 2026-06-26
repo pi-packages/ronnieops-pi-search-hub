@@ -437,14 +437,14 @@ export function htmlToMarkdown(html: string): string {
 	});
 
 	// Lists
-	md = md.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_, content) => {
-		return content.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, item) => 
+	md = md.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (_match: string, content: string) => {
+		return content.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_li: string, item: string) => 
 			`- ${stripTags(item)}\n`
 		) + "\n";
 	});
-	md = md.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_, content) => {
+	md = md.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (_match: string, content: string) => {
 		let i = 1;
-		return content.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, item) => 
+		return content.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_li: string, item: string) => 
 			`${i++}. ${stripTags(item)}\n`
 		) + "\n";
 	});

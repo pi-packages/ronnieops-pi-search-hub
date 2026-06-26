@@ -67,6 +67,7 @@ export interface SearchConfig {
 		youcom?: BackendConfig;
 		fastcrw?: BackendConfig;
 		sofya?: BackendConfig;
+		[key: string]: BackendConfig | undefined;
 	};
 }
 

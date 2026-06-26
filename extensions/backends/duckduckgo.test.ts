@@ -18,9 +18,11 @@ const mockSpawn = vi.mocked(spawn);
  * Tests must call trigger() after starting searchDuckDuckGo.
  */
 function makeMockProc(stdout: string, stderr: string, exitCode: number) {
+	const stdoutMock = { on: vi.fn(), removeAllListeners: vi.fn() };
+	const stderrMock = { on: vi.fn(), removeAllListeners: vi.fn() };
 	const proc = {
-		stdout: { on: vi.fn(), removeAllListeners: vi.fn() },
-		stderr: { on: vi.fn(), removeAllListeners: vi.fn() },
+		stdout: stdoutMock,
+		stderr: stderrMock,
 		on: vi.fn(),
 		kill: vi.fn(),
 	} as unknown as ReturnType<typeof spawn>;
@@ -33,20 +35,20 @@ function makeMockProc(stdout: string, stderr: string, exitCode: number) {
 	(proc.on as ReturnType<typeof vi.fn>).mockImplementation((evt: string, cb: (...args: unknown[]) => void) => {
 		if (evt === "close") closeHandlers.push(cb as (code: number) => void);
 	});
-	proc.stdout.on.mockImplementation((evt: string, cb: (d: Buffer) => void) => {
+	(stdoutMock.on as ReturnType<typeof vi.fn>).mockImplementation((evt: string, cb: (d: Buffer) => void) => {
 		if (evt === "data") stdoutCalls.push([evt, cb]);
 	});
-	proc.stderr.on.mockImplementation((evt: string, cb: (d: Buffer) => void) => {
+	(stderrMock.on as ReturnType<typeof vi.fn>).mockImplementation((evt: string, cb: (d: Buffer) => void) => {
 		if (evt === "data") stderrCalls.push([evt, cb]);
 	});
 
-	proc.trigger = () => {
+	const trigger = () => {
 		for (const [, cb] of stdoutCalls) cb(Buffer.from(stdout));
 		for (const [, cb] of stderrCalls) cb(Buffer.from(stderr));
 		closeHandlers.forEach((h) => h(exitCode));
 	};
 
-	return { proc, trigger: proc.trigger };
+	return { proc, trigger };
 }
 
 describe("searchDuckDuckGo", () => {

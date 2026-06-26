@@ -3,7 +3,7 @@
  */
 
 import type { SearchResult, SearchResultWithBackend } from "./types.js";
-import { config, roundRobinIndex, incrementRoundRobin, latencyMap } from "./config.js";
+import { config, roundRobinIndex, incrementRoundRobin } from "./config.js";
 import { scoreBackends } from "./scoring.js";
 
 // ---------------------------------------------------------------------------
